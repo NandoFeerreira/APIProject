@@ -8,9 +8,9 @@ namespace APIProject.Domain.Servicos
 {
     public class PedidoServico : IPedidoServico
     {
-        private readonly ProdutoServico _produtoServico;
+        private readonly IProdutoServico _produtoServico;
 
-        public PedidoServico(ProdutoServico produtoServico)
+        public PedidoServico(IProdutoServico produtoServico)
         {
             _produtoServico = produtoServico ?? throw new ArgumentNullException(nameof(produtoServico));
         }

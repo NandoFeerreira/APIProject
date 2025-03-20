@@ -15,6 +15,7 @@ namespace APIProject.Infrastructure.DependencyInjection
             services.AddScoped<IPedidoServico, PedidoServico>();
             services.AddScoped<IAvaliacaoServico, AvaliacaoServico>();
             services.AddScoped<IPromocaoServico, PromocaoServico>();
+            services.AddScoped<IUsuarioServico, UsuarioServico>();
 
             return services;
         }

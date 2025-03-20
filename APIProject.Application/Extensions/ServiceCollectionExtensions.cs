@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using AutoMapper;
+using MediatR;
 
 namespace APIProject.Application.Extensions
 {
@@ -11,7 +12,8 @@ namespace APIProject.Application.Extensions
             // Registrar o AutoMapper com os profiles
             services.AddAutoMapper(cfg => cfg.AddMaps(Assembly.GetExecutingAssembly()));
             
-            // Aqui podemos adicionar outros serviços da camada de aplicação
+            // Registrar MediatR e seus handlers
+            services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
             
             return services;
         }
