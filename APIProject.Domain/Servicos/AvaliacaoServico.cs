@@ -1,10 +1,9 @@
 using APIProject.Domain.Entidades;
-using System;
-using System.Linq;
+using APIProject.Domain.Interfaces.Servicos;
 
 namespace APIProject.Domain.Servicos
 {
-    public class AvaliacaoServico
+    public class AvaliacaoServico : IAvaliacaoServico
     {
         public void AtualizarAvaliacao(Avaliacao avaliacao, int novaClassificacao, string novoComentario)
         {

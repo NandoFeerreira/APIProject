@@ -1,9 +1,10 @@
 using APIProject.Domain.Entidades;
+using APIProject.Domain.Interfaces.Servicos;
 using System;
 
 namespace APIProject.Domain.Servicos
 {
-    public class EnderecoServico
+    public class EnderecoServico : IEnderecoServico
     {
         public void AtualizarEndereco(Endereco endereco, string logradouro, string numero, 
                                      string bairro, string cidade, string estado, 

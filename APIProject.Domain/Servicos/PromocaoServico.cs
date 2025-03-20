@@ -1,10 +1,11 @@
 using APIProject.Domain.Entidades;
+using APIProject.Domain.Interfaces.Servicos;
 using System;
 using System.Collections.Generic;
 
 namespace APIProject.Domain.Servicos
 {
-    public class PromocaoServico
+    public class PromocaoServico : IPromocaoServico
     {
         public void AtualizarPromocao(Promocao promocao, string novoNome, string novaDescricao, 
                                      decimal novoPercentualDesconto, DateTime novaDataInicio, 

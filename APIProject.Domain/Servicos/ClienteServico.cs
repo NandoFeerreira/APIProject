@@ -1,9 +1,11 @@
 using APIProject.Domain.Entidades;
+using APIProject.Domain.Interfaces.Servicos;
 using System;
 
 namespace APIProject.Domain.Servicos
 {
-    public class ClienteServico
+    public class ClienteServico : IClienteServico
+
     {
         public void AtualizarNome(Cliente cliente, string novoNome)
         {

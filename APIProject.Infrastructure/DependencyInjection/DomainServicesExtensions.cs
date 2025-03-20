@@ -7,8 +7,7 @@ namespace APIProject.Infrastructure.DependencyInjection
     public static class DomainServicesExtensions
     {
         public static IServiceCollection AddDomainServices(this IServiceCollection services)
-        {
-            
+        {            
             services.AddScoped<IProdutoServico, ProdutoServico>();
             services.AddScoped<ICategoriaServico, CategoriaServico>();
             services.AddScoped<IClienteServico, ClienteServico>();

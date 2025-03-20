@@ -1,11 +1,12 @@
 using APIProject.Domain.Entidades;
 using APIProject.Domain.Enums;
+using APIProject.Domain.Interfaces.Servicos;
 using System;
 using System.Linq;
 
 namespace APIProject.Domain.Servicos
 {
-    public class PedidoServico
+    public class PedidoServico : IPedidoServico
     {
         private readonly ProdutoServico _produtoServico;
 
