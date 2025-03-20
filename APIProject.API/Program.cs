@@ -17,7 +17,7 @@ var app = builder.Build();
 
 //await SeedData.InicializarBancoDeDados(app);
 
-// Configure the HTTP request pipeline.
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
