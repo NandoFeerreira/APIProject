@@ -1,12 +1,61 @@
 using APIProject.API.Extensions;
+using APIProject.Infrastructure.Configuracoes;
+using APIProject.Infrastructure.Persistencia;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
-var builder = WebApplication.CreateBuilder(args);
+namespace APIProject.API;
 
+public class Program
+{
+    public static void Main(string[] args)
+    {
+        var builder = WebApplication.CreateBuilder(args);
+
+// Configurar ambiente de teste se necessário
+if (builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Configuration.SetBasePath(Directory.GetCurrentDirectory())
+           .AddJsonFile("appsettings.Testing.json", optional: false, reloadOnChange: true);
+    
+    // Configurar para usar banco de dados em memória nos testes
+    builder.Configuration["UseInMemoryDatabase"] = "true";
+    
+    // Remove o registro do DbContext para permitir que os testes configurem seu próprio provedor
+    var descriptor = builder.Services.SingleOrDefault(
+        d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>));
+    if (descriptor != null)
+    {
+        builder.Services.Remove(descriptor);
+    }
+}
 
 builder.Services.AddControllers();
+
+// Adiciona serviços da aplicação
 builder.Services.AddApplicationServices(builder.Configuration);
 
-builder.Services.AddAuthentication();
+// Configurar autenticação e autorização
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        var jwtConfiguracoes = builder.Configuration.GetSection("JwtConfiguracoes").Get<JwtConfiguracoes>();
+        var chave = Encoding.ASCII.GetBytes(jwtConfiguracoes.Chave);
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(chave),
+            ValidateIssuer = true,
+            ValidIssuer = jwtConfiguracoes.Emissor,
+            ValidateAudience = true,
+            ValidAudience = jwtConfiguracoes.Audiencia,
+            ValidateLifetime = true
+        };
+    });
+
 builder.Services.AddAuthorization();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -33,7 +82,6 @@ app.UseExceptionMiddleware();
 
 app.UseHttpsRedirection();
 
-// Adicionar middleware de autenticação
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -42,4 +90,6 @@ app.MapControllers();
 
 
 
-app.Run();
+        app.Run();
+    }
+}

@@ -18,10 +18,33 @@ namespace APIProject.Infrastructure.DependencyInjection
         public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
         {
             // Configurar banco de dados
-            services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(
-                    configuration.GetConnectionString("DefaultConnection"),
-                    b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
+            var useInMemoryDb = configuration.GetValue<bool>("UseInMemoryDatabase");
+            
+            // Remove todos os registros relacionados ao DbContext para evitar múltiplos provedores
+            var descriptors = services.Where(
+                d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>) ||
+                     d.ServiceType == typeof(DbContextOptions) ||
+                     d.ServiceType == typeof(ApplicationDbContext));
+
+            foreach (var descriptor in descriptors.ToList())
+            {
+                services.Remove(descriptor);
+            }
+            
+            if (useInMemoryDb)
+            {
+                services.AddDbContext<ApplicationDbContext>(options =>
+                    options.UseInMemoryDatabase("APIProjectDb")
+                           .EnableServiceProviderCaching(false));
+            }
+            else
+            {
+                services.AddDbContext<ApplicationDbContext>(options =>
+                    options.UseSqlServer(
+                        configuration.GetConnectionString("DefaultConnection"),
+                        b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName))
+                           .EnableServiceProviderCaching(false));
+            }
 
             // Configurar JWT
             var jwtSecao = configuration.GetSection("JwtConfiguracoes");
