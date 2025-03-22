@@ -13,7 +13,7 @@ namespace APIProject.UnitTests.Validators
         public LoginUsuarioComandoValidadorTests()
         {
             _validador = new LoginUsuarioComandoValidador();
-            _faker = new Faker();
+            _faker = new Faker("pt_BR");
         }
 
         [Fact]

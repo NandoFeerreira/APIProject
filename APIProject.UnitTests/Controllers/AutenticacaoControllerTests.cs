@@ -2,6 +2,8 @@ using APIProject.API.Controllers;
 using APIProject.Application.DTOs;
 using APIProject.Application.Interfaces;
 using APIProject.Domain.Entidades;
+using Bogus;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Xunit;
@@ -10,15 +12,19 @@ namespace APIProject.UnitTests.Controllers
 {
     public class AutenticacaoControllerTests
     {
+        private readonly Mock<IMediator> _mediatorMock;
         private readonly Mock<ITokenService> _tokenServiceMock;
         private readonly Mock<IHashService> _hashServiceMock;
         private readonly AutenticacaoController _controller;
+        private readonly Faker _faker;
 
         public AutenticacaoControllerTests()
         {
+            _mediatorMock = new Mock<IMediator>();
             _tokenServiceMock = new Mock<ITokenService>();
             _hashServiceMock = new Mock<IHashService>();
-            _controller = new AutenticacaoController(_tokenServiceMock.Object, _hashServiceMock.Object);
+            _controller = new AutenticacaoController(_mediatorMock.Object);
+            _faker = new Faker();
         }
 
         [Fact]
@@ -33,10 +39,10 @@ namespace APIProject.UnitTests.Controllers
 
             var usuario = new Usuario
             {
-                Id = 1,
-                Nome = "Teste",
+                Id = _faker.Random.Int(1, 100),
+                Nome = _faker.Person.FullName,
                 Email = loginDto.Email,
-                Senha = "hashedPassword"
+                Senha = _faker.Random.AlphaNumeric(10)
             };
 
             var tokenDto = new TokenDto
@@ -45,18 +51,19 @@ namespace APIProject.UnitTests.Controllers
                 Expiracao = DateTime.UtcNow.AddHours(1)
             };
 
-            _hashServiceMock.Setup(x => x.VerificarSenha(loginDto.Senha, usuario.Senha))
+            _hashServiceMock.Setup(x => x.VerificarHash(loginDto.Senha, usuario.Senha))
                 .Returns(true);
 
             _tokenServiceMock.Setup(x => x.GerarToken(usuario))
                 .Returns(tokenDto);
 
             // Act
-            var resultado = await _controller.Login(loginDto) as OkObjectResult;
+            var resultado = await _controller.Login(loginDto) as ActionResult<TokenDto>;
 
             // Assert
             Assert.NotNull(resultado);
-            Assert.Equal(200, resultado.StatusCode);
+            var objectResult = Assert.IsType<OkObjectResult>(resultado.Result);
+            Assert.Equal(200, objectResult.StatusCode);
             Assert.IsType<TokenDto>(resultado.Value);
             var token = resultado.Value as TokenDto;
             Assert.Equal(tokenDto.Token, token.Token);
@@ -72,15 +79,17 @@ namespace APIProject.UnitTests.Controllers
                 Senha = "senhaerrada"
             };
 
-            _hashServiceMock.Setup(x => x.VerificarSenha(loginDto.Senha, It.IsAny<string>()))
+            _hashServiceMock.Setup(x => x.VerificarHash(loginDto.Senha, It.IsAny<string>()))
                 .Returns(false);
 
             // Act
-            var resultado = await _controller.Login(loginDto) as UnauthorizedResult;
+            var resultado = await _controller.Login(loginDto) as ActionResult<TokenDto>;
 
             // Assert
-            Assert.NotNull(resultado);
-            Assert.Equal(401, resultado.StatusCode);
+            Assert.NotNull(resultado.Result);
+            var unauthorizedResult = Assert.IsType<UnauthorizedResult>(resultado.Result);
+            Assert.Equal(401, unauthorizedResult.StatusCode);
+            Assert.IsType<UnauthorizedResult>(resultado.Result);
         }
     }
 }

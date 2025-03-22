@@ -21,15 +21,9 @@ if (builder.Environment.IsEnvironment("Testing"))
            .AddJsonFile("appsettings.Testing.json", optional: false, reloadOnChange: true);
     
     // Configurar para usar banco de dados em memória nos testes
-    builder.Configuration["UseInMemoryDatabase"] = "true";
-    
-    // Remove o registro do DbContext para permitir que os testes configurem seu próprio provedor
-    var descriptor = builder.Services.SingleOrDefault(
-        d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>));
-    if (descriptor != null)
-    {
-        builder.Services.Remove(descriptor);
-    }
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        options.UseInMemoryDatabase("TestDb")
+               .EnableServiceProviderCaching(false));
 }
 
 builder.Services.AddControllers();
