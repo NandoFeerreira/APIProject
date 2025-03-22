@@ -5,7 +5,6 @@ using System;
 namespace APIProject.Domain.Servicos
 {
     public class ClienteServico : IClienteServico
-
     {
         public void AtualizarNome(Cliente cliente, string novoNome)
         {
@@ -15,8 +14,8 @@ namespace APIProject.Domain.Servicos
             if (string.IsNullOrWhiteSpace(novoNome))
                 throw new ArgumentException("Nome não pode ser vazio", nameof(novoNome));
 
-            var nome = cliente.GetType().GetProperty("Nome");
-            nome.SetValue(cliente, novoNome);
+            var type = typeof(Cliente);
+            type.GetProperty(nameof(Cliente.Nome)).SetValue(cliente, novoNome);
         }
 
         public void AtualizarEmail(Cliente cliente, string novoEmail)
@@ -27,8 +26,8 @@ namespace APIProject.Domain.Servicos
             if (string.IsNullOrWhiteSpace(novoEmail))
                 throw new ArgumentException("Email não pode ser vazio", nameof(novoEmail));
 
-            var email = cliente.GetType().GetProperty("Email");
-            email.SetValue(cliente, novoEmail);
+            var type = typeof(Cliente);
+            type.GetProperty(nameof(Cliente.Email)).SetValue(cliente, novoEmail);
         }
 
         public void AdicionarEndereco(Cliente cliente, Endereco endereco)
@@ -54,8 +53,8 @@ namespace APIProject.Domain.Servicos
 
             foreach (var endereco in cliente.Enderecos)
             {
-                var principal = endereco.GetType().GetProperty("Principal");
-                principal.SetValue(endereco, endereco.Id == enderecoId);
+                var type = typeof(Endereco);
+                type.GetProperty(nameof(Endereco.Principal)).SetValue(endereco, endereco.Id == enderecoId);
             }
         }
     }

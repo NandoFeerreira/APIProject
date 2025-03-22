@@ -8,9 +8,9 @@ namespace APIProject.Domain.Servicos
 {
     public class PedidoServico : IPedidoServico
     {
-        private readonly IProdutoServico _produtoServico;
+        private readonly ProdutoServico _produtoServico;
 
-        public PedidoServico(IProdutoServico produtoServico)
+        public PedidoServico(ProdutoServico produtoServico)
         {
             _produtoServico = produtoServico ?? throw new ArgumentNullException(nameof(produtoServico));
         }
@@ -39,11 +39,9 @@ namespace APIProject.Domain.Servicos
             {
                 // Atualiza a quantidade do item existente
                 var novaQuantidade = itemExistente.Quantidade + quantidade;
-                var quantidade_prop = itemExistente.GetType().GetProperty("Quantidade");
-                quantidade_prop.SetValue(itemExistente, novaQuantidade);
-                
-                var subtotal_prop = itemExistente.GetType().GetProperty("Subtotal");
-                subtotal_prop.SetValue(itemExistente, itemExistente.PrecoUnitario * novaQuantidade);
+                var type = typeof(ItemPedido);
+                type.GetProperty(nameof(ItemPedido.Quantidade)).SetValue(itemExistente, novaQuantidade);
+                type.GetProperty(nameof(ItemPedido.Subtotal)).SetValue(itemExistente, itemExistente.PrecoUnitario * novaQuantidade);
             }
             else
             {
@@ -94,11 +92,9 @@ namespace APIProject.Domain.Servicos
             if (item.Produto.Estoque < novaQuantidade)
                 throw new InvalidOperationException("Estoque insuficiente");
 
-            var quantidade_prop = item.GetType().GetProperty("Quantidade");
-            quantidade_prop.SetValue(item, novaQuantidade);
-            
-            var subtotal_prop = item.GetType().GetProperty("Subtotal");
-            subtotal_prop.SetValue(item, item.PrecoUnitario * novaQuantidade);
+            var type = typeof(ItemPedido);
+            type.GetProperty(nameof(ItemPedido.Quantidade)).SetValue(item, novaQuantidade);
+            type.GetProperty(nameof(ItemPedido.Subtotal)).SetValue(item, item.PrecoUnitario * novaQuantidade);
             
             // Atualiza o valor total do pedido
             AtualizarValorTotal(pedido);
@@ -111,8 +107,8 @@ namespace APIProject.Domain.Servicos
 
             var valorTotal = pedido.Itens.Sum(i => i.Subtotal);
             
-            var valorTotal_prop = pedido.GetType().GetProperty("ValorTotal");
-            valorTotal_prop.SetValue(pedido, valorTotal);
+            var type = typeof(Pedido);
+            type.GetProperty(nameof(Pedido.ValorTotal)).SetValue(pedido, valorTotal);
         }
 
         public void AtualizarStatus(Pedido pedido, StatusPedido novoStatus)
@@ -166,8 +162,8 @@ namespace APIProject.Domain.Servicos
                     break;
             }
 
-            var status_prop = pedido.GetType().GetProperty("Status");
-            status_prop.SetValue(pedido, novoStatus);
+            var type = typeof(Pedido);
+            type.GetProperty(nameof(Pedido.Status)).SetValue(pedido, novoStatus);
         }
     }
 }
