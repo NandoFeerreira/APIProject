@@ -112,7 +112,7 @@ namespace APIProject.UnitTests.Validators
             var comando = new RegistrarUsuarioComando
             {
                 Nome = _faker.Name.FullName(),
-                Email = $"{new string('a', 90)}@teste.com",
+                Email = $"{new string('a', 91)}@teste.com",
                 Senha = "Senha@123",
                 ConfirmacaoSenha = "Senha@123"
             };
@@ -156,7 +156,7 @@ namespace APIProject.UnitTests.Validators
             // Act & Assert
             var resultado = _validador.TestValidate(comando);
             resultado.ShouldHaveValidationErrorFor(x => x.ConfirmacaoSenha)
-                     .WithErrorMessage("As senhas não conferem");
+                     .WithErrorMessage("Senhas não conferem");
         }
     }
 }

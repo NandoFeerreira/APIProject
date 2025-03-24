@@ -31,22 +31,43 @@ namespace APIProject.API.Controllers
                 ConfirmacaoSenha = registroDto.ConfirmacaoSenha
             };
 
-            var resultado = await _mediator.Send(comando);
-            return Ok(resultado);
+            try
+            {
+                var resultado = await _mediator.Send(comando);
+                if (resultado == null)
+                    return Unauthorized();
+                return Ok(resultado);
+            }
+            catch (Exception ex)
+            {
+                return Unauthorized(ex.Message);
+            }
         }
 
         [HttpPost("login")]
         [AllowAnonymous]
         public async Task<ActionResult<TokenDto>> Login(LoginUsuarioDto loginDto)
         {
-            var comando = new LoginUsuarioComando
+            try
             {
-                Email = loginDto.Email,
-                Senha = loginDto.Senha
-            };
+                var comando = new LoginUsuarioComando
+                {
+                    Email = loginDto.Email,
+                    Senha = loginDto.Senha
+                };
 
-            var resultado = await _mediator.Send(comando);
-            return Ok(resultado);
+                var token = await _mediator.Send(comando);
+                if (token == null)
+                {
+                    return Unauthorized();
+                }
+
+                return Ok(token);
+            }
+            catch (Exception)
+            {
+                return Unauthorized();
+            }
         }
     }
 }

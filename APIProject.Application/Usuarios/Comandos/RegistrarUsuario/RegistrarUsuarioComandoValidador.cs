@@ -14,7 +14,7 @@ namespace APIProject.Application.Usuarios.Comandos.RegistrarUsuario
             RuleFor(v => v.Email)
                 .NotEmpty().WithMessage("Email é obrigatório")
                 .EmailAddress().WithMessage("Email inválido")
-                .MaximumLength(100).WithMessage("Email não pode ter mais de 100 caracteres");
+                .Must(email => email == null || email.Length <= 100).WithMessage("Email não pode ter mais de 100 caracteres");
 
             RuleFor(v => v.Senha)
                 .NotEmpty().WithMessage("Senha é obrigatória")
