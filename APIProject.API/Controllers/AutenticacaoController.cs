@@ -31,8 +31,17 @@ namespace APIProject.API.Controllers
                 ConfirmacaoSenha = registroDto.ConfirmacaoSenha
             };
 
-            var resultado = await _mediator.Send(comando);
-            return Ok(resultado);
+            try
+            {
+                var resultado = await _mediator.Send(comando);
+                if (resultado == null)
+                    return Unauthorized();
+                return Ok(resultado);
+            }
+            catch (Exception ex)
+            {
+                return Unauthorized(ex.Message);
+            }
         }
 
         [HttpPost("login")]
@@ -47,12 +56,17 @@ namespace APIProject.API.Controllers
                     Senha = loginDto.Senha
                 };
 
-                var resultado = await _mediator.Send(comando);
-                return Ok(resultado);
+                var token = await _mediator.Send(comando);
+                if (token == null)
+                {
+                    return Unauthorized();
+                }
+
+                return Ok(token);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return Unauthorized(ex.Message);
+                return Unauthorized();
             }
         }
     }

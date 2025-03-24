@@ -16,6 +16,11 @@ namespace APIProject.Domain.Entidades
 
         protected Usuario() { }
 
+        public void Desativar()
+        {
+            Ativo = false;
+        }
+
         public Usuario(string nome, string email, string senhaCriptografada)
         {
             Id = Guid.NewGuid();
