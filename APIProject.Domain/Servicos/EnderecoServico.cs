@@ -13,28 +13,28 @@ namespace APIProject.Domain.Servicos
             if (endereco == null)
                 throw new ArgumentNullException(nameof(endereco));
 
-            var props = endereco.GetType();
+            var type = typeof(Endereco);
             
             if (!string.IsNullOrWhiteSpace(logradouro))
-                props.GetProperty("Logradouro").SetValue(endereco, logradouro);
+                type.GetProperty(nameof(Endereco.Logradouro)).SetValue(endereco, logradouro);
             
             if (!string.IsNullOrWhiteSpace(numero))
-                props.GetProperty("Numero").SetValue(endereco, numero);
+                type.GetProperty(nameof(Endereco.Numero)).SetValue(endereco, numero);
             
             if (complemento != null) // Pode ser vazio
-                props.GetProperty("Complemento").SetValue(endereco, complemento);
+                type.GetProperty(nameof(Endereco.Complemento)).SetValue(endereco, complemento);
             
             if (!string.IsNullOrWhiteSpace(bairro))
-                props.GetProperty("Bairro").SetValue(endereco, bairro);
+                type.GetProperty(nameof(Endereco.Bairro)).SetValue(endereco, bairro);
             
             if (!string.IsNullOrWhiteSpace(cidade))
-                props.GetProperty("Cidade").SetValue(endereco, cidade);
+                type.GetProperty(nameof(Endereco.Cidade)).SetValue(endereco, cidade);
             
             if (!string.IsNullOrWhiteSpace(estado))
-                props.GetProperty("Estado").SetValue(endereco, estado);
+                type.GetProperty(nameof(Endereco.Estado)).SetValue(endereco, estado);
             
             if (!string.IsNullOrWhiteSpace(cep))
-                props.GetProperty("CEP").SetValue(endereco, cep);
+                type.GetProperty(nameof(Endereco.CEP)).SetValue(endereco, cep);
         }
     }
 }

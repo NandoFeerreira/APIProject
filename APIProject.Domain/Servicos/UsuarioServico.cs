@@ -15,8 +15,8 @@ namespace APIProject.Domain.Servicos
             if (string.IsNullOrWhiteSpace(novoNome))
                 throw new ArgumentException("Nome não pode ser vazio", nameof(novoNome));
 
-            var nome = usuario.GetType().GetProperty("Nome");
-            nome.SetValue(usuario, novoNome);
+            var type = typeof(Usuario);
+            type.GetProperty(nameof(Usuario.Nome)).SetValue(usuario, novoNome);
         }
 
         public void AtualizarEmail(Usuario usuario, string novoEmail)
@@ -27,8 +27,8 @@ namespace APIProject.Domain.Servicos
             if (string.IsNullOrWhiteSpace(novoEmail))
                 throw new ArgumentException("Email não pode ser vazio", nameof(novoEmail));
 
-            var email = usuario.GetType().GetProperty("Email");
-            email.SetValue(usuario, novoEmail);
+            var type = typeof(Usuario);
+            type.GetProperty(nameof(Usuario.Email)).SetValue(usuario, novoEmail);
         }
 
         public void AtualizarSenha(Usuario usuario, string novaSenhaCriptografada)
@@ -39,8 +39,8 @@ namespace APIProject.Domain.Servicos
             if (string.IsNullOrWhiteSpace(novaSenhaCriptografada))
                 throw new ArgumentException("Senha não pode ser vazia", nameof(novaSenhaCriptografada));
 
-            var senha = usuario.GetType().GetProperty("Senha");
-            senha.SetValue(usuario, novaSenhaCriptografada);
+            var type = typeof(Usuario);
+            type.GetProperty(nameof(Usuario.Senha)).SetValue(usuario, novaSenhaCriptografada);
         }
 
         public void DesativarUsuario(Usuario usuario)
@@ -48,8 +48,8 @@ namespace APIProject.Domain.Servicos
             if (usuario == null)
                 throw new ArgumentNullException(nameof(usuario));
 
-            var ativo = usuario.GetType().GetProperty("Ativo");
-            ativo.SetValue(usuario, false);
+            var type = typeof(Usuario);
+            type.GetProperty(nameof(Usuario.Ativo)).SetValue(usuario, false);
         }
 
         public void AtivarUsuario(Usuario usuario)
@@ -57,8 +57,8 @@ namespace APIProject.Domain.Servicos
             if (usuario == null)
                 throw new ArgumentNullException(nameof(usuario));
 
-            var ativo = usuario.GetType().GetProperty("Ativo");
-            ativo.SetValue(usuario, true);
+            var type = typeof(Usuario);
+            type.GetProperty(nameof(Usuario.Ativo)).SetValue(usuario, true);
         }
 
         public void AdicionarPerfil(Usuario usuario, string perfil)
@@ -92,8 +92,8 @@ namespace APIProject.Domain.Servicos
             if (usuario == null)
                 throw new ArgumentNullException(nameof(usuario));
 
-            var ultimoLogin = usuario.GetType().GetProperty("UltimoLogin");
-            ultimoLogin.SetValue(usuario, DateTime.UtcNow);
+            var type = typeof(Usuario);
+            type.GetProperty(nameof(Usuario.UltimoLogin)).SetValue(usuario, DateTime.UtcNow);
         }
     }
 }
