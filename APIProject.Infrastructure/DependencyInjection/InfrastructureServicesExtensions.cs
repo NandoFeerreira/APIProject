@@ -4,12 +4,9 @@ using APIProject.Infrastructure.Configuracoes;
 using APIProject.Infrastructure.Persistencia;
 using APIProject.Infrastructure.Persistencia.Repositorios;
 using APIProject.Infrastructure.Servicos;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
 
 namespace APIProject.Infrastructure.DependencyInjection
 {
@@ -17,62 +14,43 @@ namespace APIProject.Infrastructure.DependencyInjection
     {
         public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
         {
-            // Configurar banco de dados
-            var useInMemoryDb = configuration.GetValue<bool>("UseInMemoryDatabase");
-            
-            // Remove todos os registros relacionados ao DbContext para evitar múltiplos provedores
-            var descriptors = services.Where(
-                d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>) ||
-                     d.ServiceType == typeof(DbContextOptions) ||
-                     d.ServiceType == typeof(ApplicationDbContext));
+            // Se o ambiente for Testing, o banco já foi configurado pelo CustomWebApplicationFactory
+            var isTestingEnv = configuration["ASPNETCORE_ENVIRONMENT"] == "Testing";
 
-            foreach (var descriptor in descriptors.ToList())
+            // Configurar banco de dados apenas se não for ambiente de teste
+            if (!isTestingEnv)
             {
-                services.Remove(descriptor);
-            }
-            
-            if (useInMemoryDb)
-            {
-                services.AddDbContext<ApplicationDbContext>(options =>
-                    options.UseInMemoryDatabase("APIProjectDb")
-                           .EnableServiceProviderCaching(false));
-            }
-            else
-            {
-                services.AddDbContext<ApplicationDbContext>(options =>
-                    options.UseSqlServer(
-                        configuration.GetConnectionString("DefaultConnection"),
-                        b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName))
-                           .EnableServiceProviderCaching(false));
-            }
+                var useInMemoryDb = configuration.GetValue<bool>("UseInMemoryDatabase");
 
-            // Configurar JWT
-            var jwtSecao = configuration.GetSection("JwtConfiguracoes");
-            services.Configure<JwtConfiguracoes>(jwtSecao);
+                // Remove todos os registros relacionados ao DbContext para evitar múltiplos provedores
+                var descriptors = services.Where(
+                    d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>) ||
+                         d.ServiceType == typeof(DbContextOptions) ||
+                         d.ServiceType == typeof(ApplicationDbContext));
 
-            var jwtConfiguracoes = jwtSecao.Get<JwtConfiguracoes>();
-            var chave = Encoding.ASCII.GetBytes(jwtConfiguracoes.Chave);
-
-            services.AddAuthentication(x =>
-            {
-                x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            })
-            .AddJwtBearer(x =>
-            {
-                x.RequireHttpsMetadata = false;
-                x.SaveToken = true;
-                x.TokenValidationParameters = new TokenValidationParameters
+                foreach (var descriptor in descriptors.ToList())
                 {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(chave),
-                    ValidateIssuer = true,
-                    ValidIssuer = jwtConfiguracoes.Emissor,
-                    ValidateAudience = true,
-                    ValidAudience = jwtConfiguracoes.Audiencia,
-                    ValidateLifetime = true
-                };
-            });
+                    services.Remove(descriptor);
+                }
+
+                if (useInMemoryDb)
+                {
+                    services.AddDbContext<ApplicationDbContext>(options =>
+                        options.UseInMemoryDatabase("APIProjectDb")
+                               .EnableServiceProviderCaching(false));
+                }
+                else
+                {
+                    services.AddDbContext<ApplicationDbContext>(options =>
+                        options.UseSqlServer(
+                            configuration.GetConnectionString("DefaultConnection"),
+                            b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName))
+                               .EnableServiceProviderCaching(false));
+                }
+            }
+
+            // Registrar serviços JwtConfiguracoes como singleton
+            services.Configure<JwtConfiguracoes>(configuration.GetSection("JwtConfiguracoes"));
 
             // Registrar serviços de infraestrutura
             services.AddScoped<IHashService, HashService>();
@@ -82,7 +60,11 @@ namespace APIProject.Infrastructure.DependencyInjection
             services.AddScoped(typeof(IRepositorioBase<>), typeof(RepositorioBase<>));
             services.AddScoped<IUsuarioRepositorio, UsuarioRepositorio>();
 
+            // Adicionar serviços de domínio
+            services.AddDomainServices();
+
             return services;
         }
     }
+
 }

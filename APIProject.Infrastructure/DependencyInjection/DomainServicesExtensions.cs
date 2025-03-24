@@ -8,13 +8,7 @@ namespace APIProject.Infrastructure.DependencyInjection
     {
         public static IServiceCollection AddDomainServices(this IServiceCollection services)
         {            
-            services.AddScoped<IProdutoServico, ProdutoServico>();
-            services.AddScoped<ICategoriaServico, CategoriaServico>();
-            services.AddScoped<IClienteServico, ClienteServico>();
-            services.AddScoped<IEnderecoServico, EnderecoServico>();
-            services.AddScoped<IPedidoServico, PedidoServico>();
-            services.AddScoped<IAvaliacaoServico, AvaliacaoServico>();
-            services.AddScoped<IPromocaoServico, PromocaoServico>();
+           
             services.AddScoped<IUsuarioServico, UsuarioServico>();
 
             return services;

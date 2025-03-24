@@ -5,14 +5,14 @@ namespace APIProject.Domain.Entidades
 {
     public class Usuario
     {
-        public Guid Id { get; private set; }
-        public string Nome { get; private set; }
-        public string Email { get; private set; }
-        public string Senha { get; private set; }
-        public DateTime DataCriacao { get; private set; }
-        public DateTime? UltimoLogin { get; private set; }
-        public bool Ativo { get; private set; }
-        public ICollection<string> Perfis { get; private set; }
+        public Guid Id { get;  set; }
+        public string Nome { get;  set; }
+        public string Email { get;  set; }
+        public string Senha { get;  set; }
+        public DateTime DataCriacao { get;  set; }
+        public DateTime? UltimoLogin { get;  set; }
+        public bool Ativo { get;  set; }
+        public ICollection<string> Perfis { get;  set; }
 
         protected Usuario() { }
 

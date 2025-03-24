@@ -1,7 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
-using AutoMapper;
-using MediatR;
 
 namespace APIProject.Application.Extensions
 {

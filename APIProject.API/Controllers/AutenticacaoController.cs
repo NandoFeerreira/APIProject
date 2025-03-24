@@ -39,14 +39,21 @@ namespace APIProject.API.Controllers
         [AllowAnonymous]
         public async Task<ActionResult<TokenDto>> Login(LoginUsuarioDto loginDto)
         {
-            var comando = new LoginUsuarioComando
+            try
             {
-                Email = loginDto.Email,
-                Senha = loginDto.Senha
-            };
+                var comando = new LoginUsuarioComando
+                {
+                    Email = loginDto.Email,
+                    Senha = loginDto.Senha
+                };
 
-            var resultado = await _mediator.Send(comando);
-            return Ok(resultado);
+                var resultado = await _mediator.Send(comando);
+                return Ok(resultado);
+            }
+            catch (Exception ex)
+            {
+                return Unauthorized(ex.Message);
+            }
         }
     }
 }

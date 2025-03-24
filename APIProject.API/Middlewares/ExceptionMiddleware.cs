@@ -37,7 +37,7 @@ namespace APIProject.API.Middlewares
 
                 var response = _env.IsDevelopment()
                     ? new { status = context.Response.StatusCode, message = ex.Message, stackTrace = ex.StackTrace }
-                    : new { status = context.Response.StatusCode, message = "Erro interno do servidor", stackTrace = (string)null };
+                    : new { status = context.Response.StatusCode, message = "Erro interno do servidor", stackTrace = (string?)null };
 
                 var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
                 var json = JsonSerializer.Serialize(response, options);

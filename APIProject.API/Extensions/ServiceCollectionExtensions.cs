@@ -1,27 +1,20 @@
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Configuration;
-using Microsoft.OpenApi.Models;
-using APIProject.Infrastructure.DependencyInjection;
 using APIProject.Application.Extensions;
-using APIProject.Infrastructure.Persistencia;
+using Microsoft.OpenApi.Models;
 
 namespace APIProject.API.Extensions
 {
     public static class ServiceCollectionExtensions
     {
         public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
-    {
-        // Adiciona serviços da aplicação
-        if (true)
         {
-            services.AddInfrastructureServices(configuration);
+            // Adiciona serviços da camada de aplicação
             services.AddApplicationLayer();
+            
+
+            return services;
         }
 
-        return services;
-    }
-
-    public static IServiceCollection AddOpenApi(this IServiceCollection services)
+        public static IServiceCollection AddOpenApi(this IServiceCollection services)
         {
             services.AddEndpointsApiExplorer();
             services.AddSwaggerGen(c =>
@@ -63,6 +56,7 @@ namespace APIProject.API.Extensions
 
             return services;
         }
+
 
 
     }
