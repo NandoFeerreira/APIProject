@@ -1,7 +1,5 @@
 using APIProject.Domain.Entidades;
 using APIProject.Domain.Interfaces.Servicos;
-using System;
-using System.Linq;
 
 namespace APIProject.Domain.Servicos
 {

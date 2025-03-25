@@ -29,11 +29,6 @@ namespace APIProject.IntegrationTests.Controllers
             }
         }
 
-        
-
-
-
-
         [Fact]
         public async Task Login_ComCredenciaisInvalidas_RetornaUnauthorized()
         {
