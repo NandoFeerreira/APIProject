@@ -2,24 +2,108 @@ using APIProject.Domain.Entidades;
 using APIProject.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace APIProject.Infrastructure.Persistencia.Repositorios
 {
-    public class UsuarioRepositorio : RepositorioBase<Usuario>, IUsuarioRepositorio
+    public class UsuarioRepositorio : IUsuarioRepositorio
     {
-        public UsuarioRepositorio(ApplicationDbContext context) : base(context)
+        private readonly ApplicationDbContext _context;
+        private readonly DbSet<Usuario> _usuarios;
+
+        public UsuarioRepositorio(ApplicationDbContext context)
         {
+            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _usuarios = context.Usuarios;
         }
 
-        public async Task<Usuario> ObterPorEmailAsync(string email)
+        public async Task<Usuario?> ObterPorIdAsync(Guid id)
         {
-            return await _dbSet.FirstOrDefaultAsync(u => u.Email == email);
+            return await _usuarios.FindAsync(id);
+        }
+
+        public async Task<IEnumerable<Usuario>> ObterTodosAsync()
+        {
+            return await _usuarios.ToListAsync();
+        }
+
+        public async Task<IEnumerable<Usuario>> ObterAtivosAsync()
+        {
+            return await _usuarios.Where(u => u.Ativo).ToListAsync();
+        }
+
+        public async Task<Usuario?> ObterPorEmailAsync(string email)
+        {
+            return await _usuarios.FirstOrDefaultAsync(u => u.Email == email);
         }
 
         public async Task<bool> EmailExisteAsync(string email)
         {
-            return await _dbSet.AnyAsync(u => u.Email == email);
+            return await _usuarios.AnyAsync(u => u.Email == email);
+        }
+
+        public async Task<IEnumerable<Usuario>> BuscarAsync(string termo)
+        {
+            if (string.IsNullOrWhiteSpace(termo))
+                return await ObterTodosAsync();
+
+            termo = termo.ToLower();
+            return await _usuarios
+                .Where(u => u.Nome.ToLower().Contains(termo) ||
+                           u.Email.ToLower().Contains(termo))
+                .ToListAsync();
+        }
+
+        public async Task<(IEnumerable<Usuario> Usuarios, int Total)> ObterPaginadoAsync(
+            int pagina,
+            int tamanhoPagina,
+            string? termoBusca = null,
+            bool? somenteAtivos = null)
+        {
+            IQueryable<Usuario> query = _usuarios;
+
+            if (somenteAtivos.HasValue)
+            {
+                query = query.Where(u => u.Ativo == somenteAtivos.Value);
+            }
+
+            if (!string.IsNullOrEmpty(termoBusca))
+            {
+                termoBusca = termoBusca.ToLower();
+                query = query.Where(u =>
+                    u.Nome.ToLower().Contains(termoBusca) ||
+                    u.Email.ToLower().Contains(termoBusca));
+            }
+
+            int total = await query.CountAsync();
+
+            var usuarios = await query
+                .OrderBy(u => u.Nome)
+                .Skip((pagina - 1) * tamanhoPagina)
+                .Take(tamanhoPagina)
+                .ToListAsync();
+
+            return (usuarios, total);
+        }
+
+        public async Task AdicionarAsync(Usuario usuario)
+        {
+            await _usuarios.AddAsync(usuario);
+        }
+
+        public void Atualizar(Usuario usuario)
+        {
+            // O Entity Framework Core rastreará automaticamente as alterações
+            // Não é necessário chamar _context.Update ou definir o estado da entidade
+            // Apenas atualizar a entidade rastreada já é suficiente
+            // _context.Entry(usuario).State = EntityState.Modified;
+        }
+
+        public void Remover(Usuario usuario)
+        {
+            _usuarios.Remove(usuario);
         }
     }
 }

@@ -1,7 +1,9 @@
 using APIProject.API;
 using APIProject.Application.Interfaces;
 using APIProject.Domain.Entidades;
+using APIProject.Domain.Interfaces;
 using APIProject.Infrastructure.Persistencia;
+using APIProject.Infrastructure.Persistencia.Repositorios;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -57,6 +59,9 @@ namespace APIProject.IntegrationTests
                            .EnableDetailedErrors()
                            .EnableSensitiveDataLogging());
 
+                // Registrar o UnitOfWork para testes
+                services.AddScoped<IUnitOfWork, UnitOfWork>();
+
                 // Inicializar o banco de dados
                 var sp = services.BuildServiceProvider();
                 using (var scope = sp.CreateScope())
@@ -83,44 +88,32 @@ namespace APIProject.IntegrationTests
             try
             {
                 using var scope = Services.CreateScope();
-                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
                 var hashService = scope.ServiceProvider.GetRequiredService<IHashService>();
 
                 // Limpar todos os usuários existentes
+                // (Este método precisaria ser adicionado ou adaptado à nova implementação do repositório)
+                // Para testes, podemos usar o contexto diretamente uma vez que estamos no mesmo assembly
+                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 context.Usuarios.RemoveRange(context.Usuarios);
                 context.SaveChanges();
 
                 // Adicionar usuário específico para o teste de login
-                // IMPORTANTE: Certifique-se de que o hash está sendo criado corretamente
-                var senhaCriptografada = hashService.CriarHash("senha123");               
+                var senhaCriptografada = hashService.CriarHash("senha123");
 
                 var usuarioTeste = new Usuario("Usuário Teste", "teste@teste.com", senhaCriptografada);
                 usuarioTeste.Ativo = true;  // Garantir que o usuário está ativo
-                context.Usuarios.Add(usuarioTeste);
 
-                // ... resto do método ...
-
-                context.SaveChanges();
-
-                // Verificar se o usuário foi criado corretamente
-                var usuarioVerificacao = context.Usuarios.FirstOrDefault(u => u.Email == "teste@teste.com");
-                if (usuarioVerificacao != null)
-                {
-                    Console.WriteLine($"Usuário de teste criado com sucesso: {usuarioVerificacao.Id}, Ativo: {usuarioVerificacao.Ativo}");
-                }
-                else
-                {
-                    Console.WriteLine("ERRO: Usuário de teste não foi criado!");
-                }
+                // Usar o UnitOfWork para adicionar o usuário
+                unitOfWork.Usuarios.AdicionarAsync(usuarioTeste).Wait();
+                unitOfWork.CommitAsync().Wait();
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Erro ao inicializar dados de teste: {ex.Message}");
-                Console.WriteLine($"Stack Trace: {ex.StackTrace}");
                 throw;
             }
         }
-
     }
 }
 

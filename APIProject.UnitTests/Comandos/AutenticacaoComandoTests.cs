@@ -1,24 +1,29 @@
-using Moq;
-using Xunit;
+using APIProject.Application.DTOs;
 using APIProject.Application.Interfaces;
 using APIProject.Application.Usuarios.Comandos.LoginUsuario;
 using APIProject.Application.Usuarios.Comandos.RegistrarUsuario;
-using APIProject.Domain.Interfaces;
-using APIProject.Domain.Interfaces.Servicos;
-using APIProject.Application.DTOs;
 using APIProject.Domain.Entidades;
 using APIProject.Domain.Excecoes;
-using System.Threading;
-using System.Threading.Tasks;
+using APIProject.Domain.Interfaces;
+using APIProject.Domain.Interfaces.Servicos;
+using Moq;
+using Xunit;
 
 namespace APIProject.UnitTests.Comandos
 {
     public class AutenticacaoComandoTests
     {
+        private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
         private readonly Mock<IUsuarioRepositorio> _usuarioRepositorioMock = new();
         private readonly Mock<IHashService> _hashServiceMock = new();
         private readonly Mock<ITokenService> _tokenServiceMock = new();
         private readonly Mock<IUsuarioServico> _usuarioServicoMock = new();
+
+        public AutenticacaoComandoTests()
+        {
+            // Configurar o repositório mock para ser retornado pelo UnitOfWork
+            _unitOfWorkMock.Setup(uow => uow.Usuarios).Returns(_usuarioRepositorioMock.Object);
+        }
 
         [Fact]
         public async Task Handle_LoginComando_CredenciaisValidas_RetornaToken()
@@ -26,7 +31,7 @@ namespace APIProject.UnitTests.Comandos
             // Arrange
             var comando = new LoginUsuarioComando { Email = "teste@teste.com", Senha = "senha123" };
             var handler = new LoginUsuarioComandoHandler(
-                _usuarioRepositorioMock.Object,
+                _unitOfWorkMock.Object,
                 _hashServiceMock.Object,
                 _tokenServiceMock.Object,
                 _usuarioServicoMock.Object);
@@ -47,8 +52,7 @@ namespace APIProject.UnitTests.Comandos
             // Assert
             Assert.Equal("token_gerado", resultado.Token);
             _usuarioServicoMock.Verify(x => x.RegistrarLogin(usuario), Times.Once);
-            _usuarioRepositorioMock.Verify(x => x.AtualizarAsync(usuario), Times.Once);
-            _usuarioRepositorioMock.Verify(x => x.SalvarAsync(), Times.Once);
+            _unitOfWorkMock.Verify(uow => uow.CommitAsync(), Times.Once);
         }
 
         [Fact]
@@ -57,7 +61,7 @@ namespace APIProject.UnitTests.Comandos
             // Arrange
             var comando = new LoginUsuarioComando { Email = "inexistente@teste.com", Senha = "senha" };
             var handler = new LoginUsuarioComandoHandler(
-                _usuarioRepositorioMock.Object,
+                _unitOfWorkMock.Object,
                 _hashServiceMock.Object,
                 _tokenServiceMock.Object,
                 _usuarioServicoMock.Object);
@@ -77,7 +81,7 @@ namespace APIProject.UnitTests.Comandos
             // Arrange
             var comando = new LoginUsuarioComando { Email = "inativo@teste.com", Senha = "senha123" };
             var handler = new LoginUsuarioComandoHandler(
-                _usuarioRepositorioMock.Object,
+                _unitOfWorkMock.Object,
                 _hashServiceMock.Object,
                 _tokenServiceMock.Object,
                 _usuarioServicoMock.Object);
@@ -100,7 +104,7 @@ namespace APIProject.UnitTests.Comandos
             // Arrange
             var comando = new LoginUsuarioComando { Email = "teste@teste.com", Senha = "senha_errada" };
             var handler = new LoginUsuarioComandoHandler(
-                _usuarioRepositorioMock.Object,
+                _unitOfWorkMock.Object,
                 _hashServiceMock.Object,
                 _tokenServiceMock.Object,
                 _usuarioServicoMock.Object);
@@ -128,12 +132,12 @@ namespace APIProject.UnitTests.Comandos
                 Nome = "Novo Usuário",
                 Email = "novo@teste.com",
                 Senha = "Senha123!",
-                ConfirmacaoSenha = "Senha123!" // Adicionado confirmação de senha
+                ConfirmacaoSenha = "Senha123!"
             };
 
             var mapperMock = new Mock<AutoMapper.IMapper>();
             var handler = new RegistrarUsuarioComandoHandler(
-                _usuarioRepositorioMock.Object,
+                _unitOfWorkMock.Object,
                 mapperMock.Object,
                 _hashServiceMock.Object);
 
@@ -152,6 +156,7 @@ namespace APIProject.UnitTests.Comandos
             Assert.Equal(comando.Email, resultado.Email);
             _usuarioRepositorioMock.Verify(x => x.AdicionarAsync(It.Is<Usuario>(u =>
                 u.Email == comando.Email && u.Senha == "hash_senha")), Times.Once);
+            _unitOfWorkMock.Verify(uow => uow.CommitAsync(), Times.Once);
         }
 
         [Fact]
@@ -168,7 +173,7 @@ namespace APIProject.UnitTests.Comandos
 
             var mapperMock = new Mock<AutoMapper.IMapper>();
             var handler = new RegistrarUsuarioComandoHandler(
-                _usuarioRepositorioMock.Object,
+                _unitOfWorkMock.Object,
                 mapperMock.Object,
                 _hashServiceMock.Object);
 
@@ -196,7 +201,7 @@ namespace APIProject.UnitTests.Comandos
 
             var mapperMock = new Mock<AutoMapper.IMapper>();
             var handler = new RegistrarUsuarioComandoHandler(
-                _usuarioRepositorioMock.Object,
+                _unitOfWorkMock.Object,
                 mapperMock.Object,
                 _hashServiceMock.Object);
 

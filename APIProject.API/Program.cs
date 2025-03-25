@@ -3,6 +3,8 @@ using APIProject.Infrastructure.DependencyInjection;
 using APIProject.Infrastructure.Persistencia;
 using Microsoft.EntityFrameworkCore;
 using APIProject.API.Middlewares;
+using APIProject.Domain.Interfaces;
+using APIProject.Infrastructure.Persistencia.Repositorios;
 
 namespace APIProject.API;
 
@@ -22,6 +24,7 @@ public partial class Program
         // Adicionar serviços da aplicação e infraestrutura
         builder.Services.AddApplicationServices(builder.Configuration);
         builder.Services.AddInfrastructureServices(builder.Configuration);
+        
 
         // Configurar Swagger para ambiente não-teste
         if (!builder.Environment.IsEnvironment("Testing"))

@@ -1,4 +1,8 @@
 ﻿using APIProject.Application.DTOs;
+using APIProject.Domain.Entidades;
+using APIProject.Domain.Interfaces;
+using APIProject.Infrastructure.Persistencia;
+using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
 using Xunit;
@@ -21,11 +25,11 @@ namespace APIProject.IntegrationTests.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Falha na inicialização dos testes: {ex.Message}");
-                Console.WriteLine(ex.StackTrace);
                 throw;
             }
         }
+
+        
 
         [Fact]
         public async Task Login_ComCredenciaisInvalidas_RetornaUnauthorized()
@@ -58,9 +62,9 @@ namespace APIProject.IntegrationTests.Controllers
                 Senha = "Senha123!",
                 ConfirmacaoSenha = "Senha123!"
             };
-         
-            var response = await _client.PostAsJsonAsync("/api/autenticacao/registrar", registroDto);          
-            var conteudo = await response.Content.ReadAsStringAsync();            
+
+            // Act
+            var response = await _client.PostAsJsonAsync("/api/autenticacao/registrar", registroDto);
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -72,9 +76,7 @@ namespace APIProject.IntegrationTests.Controllers
                 Assert.Equal(registroDto.Nome, usuarioResponse.Nome);
             }
         }
-
         
-
-
     }
 }
+

@@ -5,7 +5,6 @@ using APIProject.Domain.Excecoes;
 using APIProject.Domain.Interfaces;
 using AutoMapper;
 using MediatR;
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,16 +12,16 @@ namespace APIProject.Application.Usuarios.Comandos.RegistrarUsuario
 {
     public class RegistrarUsuarioComandoHandler : IRequestHandler<RegistrarUsuarioComando, UsuarioDto>
     {
-        private readonly IUsuarioRepositorio _usuarioRepositorio;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IHashService _hashService;
 
         public RegistrarUsuarioComandoHandler(
-            IUsuarioRepositorio usuarioRepositorio,
+            IUnitOfWork unitOfWork,
             IMapper mapper,
             IHashService hashService)
         {
-            _usuarioRepositorio = usuarioRepositorio;
+            _unitOfWork = unitOfWork;
             _mapper = mapper;
             _hashService = hashService;
         }
@@ -30,7 +29,7 @@ namespace APIProject.Application.Usuarios.Comandos.RegistrarUsuario
         public async Task<UsuarioDto> Handle(RegistrarUsuarioComando request, CancellationToken cancellationToken)
         {
             // Verificar se o email já existe
-            if (await _usuarioRepositorio.EmailExisteAsync(request.Email))
+            if (await _unitOfWork.Usuarios.EmailExisteAsync(request.Email))
             {
                 throw new DadosDuplicadosException("Usuário", "email", request.Email);
             }
@@ -48,11 +47,11 @@ namespace APIProject.Application.Usuarios.Comandos.RegistrarUsuario
                 _hashService.CriarHash(request.Senha)
             );
 
-            await _usuarioRepositorio.AdicionarAsync(usuario);
-            await _usuarioRepositorio.SalvarAsync();
+            await _unitOfWork.Usuarios.AdicionarAsync(usuario);
+            await _unitOfWork.CommitAsync();
 
             return _mapper.Map<UsuarioDto>(usuario);
         }
     }
 }
-    
+

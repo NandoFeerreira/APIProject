@@ -12,6 +12,7 @@ namespace APIProject.UnitTests.Application.Usuarios.Comandos.RegistrarUsuario
 {
     public class RegistrarUsuarioComandoHandlerTests
     {
+        private readonly Mock<IUnitOfWork> _unitOfWorkMock;
         private readonly Mock<IUsuarioRepositorio> _usuarioRepositorioMock;
         private readonly Mock<IMapper> _mapperMock;
         private readonly Mock<IHashService> _hashServiceMock;
@@ -19,12 +20,16 @@ namespace APIProject.UnitTests.Application.Usuarios.Comandos.RegistrarUsuario
 
         public RegistrarUsuarioComandoHandlerTests()
         {
+            _unitOfWorkMock = new Mock<IUnitOfWork>();
             _usuarioRepositorioMock = new Mock<IUsuarioRepositorio>();
             _mapperMock = new Mock<IMapper>();
             _hashServiceMock = new Mock<IHashService>();
 
+            // Configurar o UnitOfWork para retornar o repositório de usuários mockado
+            _unitOfWorkMock.Setup(uow => uow.Usuarios).Returns(_usuarioRepositorioMock.Object);
+
             _handler = new RegistrarUsuarioComandoHandler(
-                _usuarioRepositorioMock.Object,
+                _unitOfWorkMock.Object,
                 _mapperMock.Object,
                 _hashServiceMock.Object);
         }
@@ -65,7 +70,7 @@ namespace APIProject.UnitTests.Application.Usuarios.Comandos.RegistrarUsuario
             // Assert
             Assert.Equal(usuarioDto, result);
             _usuarioRepositorioMock.Verify(x => x.AdicionarAsync(It.IsAny<Usuario>()), Times.Once);
-            _usuarioRepositorioMock.Verify(x => x.SalvarAsync(), Times.Once);
+            _unitOfWorkMock.Verify(x => x.CommitAsync(), Times.Once);
         }
 
         [Fact]
@@ -114,3 +119,4 @@ namespace APIProject.UnitTests.Application.Usuarios.Comandos.RegistrarUsuario
         }
     }
 }
+

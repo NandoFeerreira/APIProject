@@ -12,6 +12,7 @@ namespace APIProject.UnitTests.Application.Usuarios.Comandos.LoginUsuario
 {
     public class LoginUsuarioComandoHandlerTests
     {
+        private readonly Mock<IUnitOfWork> _unitOfWorkMock;
         private readonly Mock<IUsuarioRepositorio> _usuarioRepositorioMock;
         private readonly Mock<IHashService> _hashServiceMock;
         private readonly Mock<ITokenService> _tokenServiceMock;
@@ -20,13 +21,17 @@ namespace APIProject.UnitTests.Application.Usuarios.Comandos.LoginUsuario
 
         public LoginUsuarioComandoHandlerTests()
         {
+            _unitOfWorkMock = new Mock<IUnitOfWork>();
             _usuarioRepositorioMock = new Mock<IUsuarioRepositorio>();
             _hashServiceMock = new Mock<IHashService>();
             _tokenServiceMock = new Mock<ITokenService>();
             _usuarioServicoMock = new Mock<IUsuarioServico>();
 
+            // Configurar o UnitOfWork para retornar o repositório de usuários mockado
+            _unitOfWorkMock.Setup(uow => uow.Usuarios).Returns(_usuarioRepositorioMock.Object);
+
             _handler = new LoginUsuarioComandoHandler(
-                _usuarioRepositorioMock.Object,
+                _unitOfWorkMock.Object,
                 _hashServiceMock.Object,
                 _tokenServiceMock.Object,
                 _usuarioServicoMock.Object);
@@ -62,8 +67,7 @@ namespace APIProject.UnitTests.Application.Usuarios.Comandos.LoginUsuario
             // Assert
             Assert.Equal(tokenDto, result);
             _usuarioServicoMock.Verify(x => x.RegistrarLogin(usuario), Times.Once);
-            _usuarioRepositorioMock.Verify(x => x.AtualizarAsync(usuario), Times.Once);
-            _usuarioRepositorioMock.Verify(x => x.SalvarAsync(), Times.Once);
+            _unitOfWorkMock.Verify(x => x.CommitAsync(), Times.Once);
         }
 
         [Fact]
@@ -136,3 +140,4 @@ namespace APIProject.UnitTests.Application.Usuarios.Comandos.LoginUsuario
         }
     }
 }
+

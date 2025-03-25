@@ -57,7 +57,7 @@ namespace APIProject.Infrastructure.DependencyInjection
             services.AddScoped<ITokenService, TokenService>();
 
             // Registrar repositórios
-            services.AddScoped(typeof(IRepositorioBase<>), typeof(RepositorioBase<>));
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<IUsuarioRepositorio, UsuarioRepositorio>();
 
             // Adicionar serviços de domínio
