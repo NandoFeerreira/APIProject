@@ -7,7 +7,7 @@ namespace APIProject.API.Extensions
     {
         public static IApplicationBuilder UseExceptionMiddleware(this IApplicationBuilder app)
         {
-            return app.UseMiddleware<ExceptionMiddleware>();
+            return app.UseMiddleware<TratamentoExcecoesMiddleware>();
         }
     }
 }

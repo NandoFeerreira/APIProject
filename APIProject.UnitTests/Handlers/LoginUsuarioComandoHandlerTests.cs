@@ -2,16 +2,13 @@ using APIProject.Application.DTOs;
 using APIProject.Application.Interfaces;
 using APIProject.Application.Usuarios.Comandos.LoginUsuario;
 using APIProject.Domain.Entidades;
+using APIProject.Domain.Excecoes;
 using APIProject.Domain.Interfaces;
 using APIProject.Domain.Interfaces.Servicos;
-using Bogus;
 using Moq;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 
-namespace APIProject.UnitTests.Handlers
+namespace APIProject.UnitTests.Application.Usuarios.Comandos.LoginUsuario
 {
     public class LoginUsuarioComandoHandlerTests
     {
@@ -20,7 +17,6 @@ namespace APIProject.UnitTests.Handlers
         private readonly Mock<ITokenService> _tokenServiceMock;
         private readonly Mock<IUsuarioServico> _usuarioServicoMock;
         private readonly LoginUsuarioComandoHandler _handler;
-        private readonly Faker _faker;
 
         public LoginUsuarioComandoHandlerTests()
         {
@@ -28,12 +24,12 @@ namespace APIProject.UnitTests.Handlers
             _hashServiceMock = new Mock<IHashService>();
             _tokenServiceMock = new Mock<ITokenService>();
             _usuarioServicoMock = new Mock<IUsuarioServico>();
+
             _handler = new LoginUsuarioComandoHandler(
                 _usuarioRepositorioMock.Object,
                 _hashServiceMock.Object,
                 _tokenServiceMock.Object,
                 _usuarioServicoMock.Object);
-            _faker = new Faker();
         }
 
         [Fact]
@@ -46,13 +42,10 @@ namespace APIProject.UnitTests.Handlers
                 Senha = "senha123"
             };
 
-            var usuario = new Usuario(_faker.Person.FullName, comando.Email, _faker.Random.AlphaNumeric(10));
+            var usuario = new Usuario("Teste", "teste@teste.com", "hash");
+            usuario.Ativo = true;
 
-            var tokenEsperado = new TokenDto
-            {
-                Token = "jwt-token",
-                Expiracao = DateTime.UtcNow.AddHours(1)
-            };
+            var tokenDto = new TokenDto { Token = "token_valido" };
 
             _usuarioRepositorioMock.Setup(x => x.ObterPorEmailAsync(comando.Email))
                 .ReturnsAsync(usuario);
@@ -61,23 +54,20 @@ namespace APIProject.UnitTests.Handlers
                 .Returns(true);
 
             _tokenServiceMock.Setup(x => x.GerarToken(usuario))
-                .Returns(tokenEsperado);
+                .Returns(tokenDto);
 
             // Act
-            var resultado = await _handler.Handle(comando, CancellationToken.None);
+            var result = await _handler.Handle(comando, CancellationToken.None);
 
             // Assert
-            Assert.NotNull(resultado);
-            Assert.Equal(tokenEsperado.Token, resultado.Token);
-            Assert.Equal(tokenEsperado.Expiracao, resultado.Expiracao);
-
-            _usuarioRepositorioMock.Verify(x => x.ObterPorEmailAsync(comando.Email), Times.Once);
-            _hashServiceMock.Verify(x => x.VerificarHash(comando.Senha, usuario.Senha), Times.Once);
-            _tokenServiceMock.Verify(x => x.GerarToken(usuario), Times.Once);
+            Assert.Equal(tokenDto, result);
+            _usuarioServicoMock.Verify(x => x.RegistrarLogin(usuario), Times.Once);
+            _usuarioRepositorioMock.Verify(x => x.AtualizarAsync(usuario), Times.Once);
+            _usuarioRepositorioMock.Verify(x => x.SalvarAsync(), Times.Once);
         }
 
         [Fact]
-        public async Task Handle_ComUsuarioInexistente_LancaExcecao()
+        public async Task Handle_ComUsuarioInexistente_LancaOperacaoNaoAutorizadaException()
         {
             // Arrange
             var comando = new LoginUsuarioComando
@@ -87,51 +77,50 @@ namespace APIProject.UnitTests.Handlers
             };
 
             _usuarioRepositorioMock.Setup(x => x.ObterPorEmailAsync(comando.Email))
-                .ReturnsAsync((Usuario?)null);
+                .ReturnsAsync((Usuario)null);
 
             // Act & Assert
-            var exception = await Assert.ThrowsAsync<Exception>(
+            var exception = await Assert.ThrowsAsync<OperacaoNaoAutorizadaException>(
                 () => _handler.Handle(comando, CancellationToken.None));
 
             Assert.Equal("Usuário ou senha inválidos", exception.Message);
-            _usuarioRepositorioMock.Verify(x => x.ObterPorEmailAsync(comando.Email), Times.Once);
         }
 
         [Fact]
-        public async Task Handle_ComUsuarioInativo_LancaExcecao()
-        {
-            // Arrange
-            var comando = new LoginUsuarioComando
-            {
-                Email = "inativo@teste.com",
-                Senha = "senha123"
-            };
-
-            var usuario = new Usuario(_faker.Person.FullName, comando.Email, _faker.Random.AlphaNumeric(10));
-            usuario.Desativar();
-
-            _usuarioRepositorioMock.Setup(x => x.ObterPorEmailAsync(comando.Email))
-                .ReturnsAsync(usuario);
-
-            // Act & Assert
-            var exception = await Assert.ThrowsAsync<Exception>(
-                () => _handler.Handle(comando, CancellationToken.None));
-
-            Assert.Equal("Usuário inativo", exception.Message);
-            _usuarioRepositorioMock.Verify(x => x.ObterPorEmailAsync(comando.Email), Times.Once);
-        }
-
-        [Fact]
-        public async Task Handle_ComSenhaInvalida_LancaExcecao()
+        public async Task Handle_ComUsuarioInativo_LancaOperacaoNaoAutorizadaException()
         {
             // Arrange
             var comando = new LoginUsuarioComando
             {
                 Email = "teste@teste.com",
-                Senha = "senhaerrada"
+                Senha = "senha123"
             };
 
-            var usuario = new Usuario(_faker.Person.FullName, comando.Email, _faker.Random.AlphaNumeric(10));
+            var usuario = new Usuario("Teste", "teste@teste.com", "hash");
+            usuario.Ativo = false;
+
+            _usuarioRepositorioMock.Setup(x => x.ObterPorEmailAsync(comando.Email))
+                .ReturnsAsync(usuario);
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<OperacaoNaoAutorizadaException>(
+                () => _handler.Handle(comando, CancellationToken.None));
+
+            Assert.Equal("Usuário inativo", exception.Message);
+        }
+
+        [Fact]
+        public async Task Handle_ComSenhaInvalida_LancaOperacaoNaoAutorizadaException()
+        {
+            // Arrange
+            var comando = new LoginUsuarioComando
+            {
+                Email = "teste@teste.com",
+                Senha = "senha_errada"
+            };
+
+            var usuario = new Usuario("Teste", "teste@teste.com", "hash");
+            usuario.Ativo = true;
 
             _usuarioRepositorioMock.Setup(x => x.ObterPorEmailAsync(comando.Email))
                 .ReturnsAsync(usuario);
@@ -140,12 +129,10 @@ namespace APIProject.UnitTests.Handlers
                 .Returns(false);
 
             // Act & Assert
-            var exception = await Assert.ThrowsAsync<Exception>(
+            var exception = await Assert.ThrowsAsync<OperacaoNaoAutorizadaException>(
                 () => _handler.Handle(comando, CancellationToken.None));
 
             Assert.Equal("Usuário ou senha inválidos", exception.Message);
-            _usuarioRepositorioMock.Verify(x => x.ObterPorEmailAsync(comando.Email), Times.Once);
-            _hashServiceMock.Verify(x => x.VerificarHash(comando.Senha, usuario.Senha), Times.Once);
         }
     }
 }

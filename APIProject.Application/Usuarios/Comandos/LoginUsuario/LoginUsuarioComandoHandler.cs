@@ -1,5 +1,6 @@
 using APIProject.Application.DTOs;
 using APIProject.Application.Interfaces;
+using APIProject.Domain.Excecoes;
 using APIProject.Domain.Interfaces;
 using APIProject.Domain.Interfaces.Servicos;
 using MediatR;
@@ -34,19 +35,19 @@ namespace APIProject.Application.Usuarios.Comandos.LoginUsuario
             var usuario = await _usuarioRepositorio.ObterPorEmailAsync(request.Email);
             if (usuario == null)
             {
-                throw new Exception("Usuário ou senha inválidos");
+                throw new OperacaoNaoAutorizadaException("Usuário ou senha inválidos");
             }
 
             // Verificar se o usuário está ativo
             if (!usuario.Ativo)
             {
-                throw new Exception("Usuário inativo");
+                throw new OperacaoNaoAutorizadaException("Usuário inativo");
             }
 
             // Verificar a senha
             if (!_hashService.VerificarHash(request.Senha, usuario.Senha))
             {
-                throw new Exception("Usuário ou senha inválidos");
+                throw new OperacaoNaoAutorizadaException("Usuário ou senha inválidos");
             }
 
             // Registrar o login

@@ -2,6 +2,7 @@ using APIProject.API.Extensions;
 using APIProject.Infrastructure.DependencyInjection;
 using APIProject.Infrastructure.Persistencia;
 using Microsoft.EntityFrameworkCore;
+using APIProject.API.Middlewares;
 
 namespace APIProject.API;
 
@@ -60,7 +61,7 @@ public partial class Program
         }
 
         // Middleware comum a todos os ambientes
-        app.UseExceptionMiddleware();
+        app.UseTratamentoExcecoes();
         app.UseHttpsRedirection();
         app.UseAuthentication();
         app.UseAuthorization();

@@ -1,6 +1,7 @@
 using APIProject.Application.DTOs;
 using APIProject.Application.Interfaces;
 using APIProject.Domain.Entidades;
+using APIProject.Domain.Excecoes;
 using APIProject.Domain.Interfaces;
 using AutoMapper;
 using MediatR;
@@ -31,7 +32,13 @@ namespace APIProject.Application.Usuarios.Comandos.RegistrarUsuario
             // Verificar se o email já existe
             if (await _usuarioRepositorio.EmailExisteAsync(request.Email))
             {
-                throw new Exception("Email já cadastrado");
+                throw new DadosDuplicadosException("Usuário", "email", request.Email);
+            }
+
+            // Validar a confirmação de senha
+            if (request.Senha != request.ConfirmacaoSenha)
+            {
+                throw new ValidacaoException("ConfirmacaoSenha", "A senha e a confirmação de senha não correspondem.");
             }
 
             // Criar novo usuário

@@ -1,6 +1,4 @@
 ﻿using APIProject.Application.DTOs;
-using APIProject.Infrastructure.Persistencia;
-using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
 using Xunit;
