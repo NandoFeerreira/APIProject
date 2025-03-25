@@ -38,6 +38,10 @@ namespace APIProject.API.Controllers
                     return Unauthorized();
                 return Ok(resultado);
             }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 return Unauthorized(ex.Message);

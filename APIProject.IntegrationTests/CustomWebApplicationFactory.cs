@@ -2,7 +2,6 @@ using APIProject.API;
 using APIProject.Application.Interfaces;
 using APIProject.Domain.Entidades;
 using APIProject.Infrastructure.Persistencia;
-using Bogus;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System;
 
 namespace APIProject.IntegrationTests
 {
@@ -91,30 +91,27 @@ namespace APIProject.IntegrationTests
                 context.SaveChanges();
 
                 // Adicionar usuário específico para o teste de login
-                var usuarioTeste = new Usuario("Usuário Teste", "teste@teste.com", hashService.CriarHash("senha123"));
-                usuarioTeste.Ativo = true; // Garantir que está ativo
+                // IMPORTANTE: Certifique-se de que o hash está sendo criado corretamente
+                var senhaCriptografada = hashService.CriarHash("senha123");               
+
+                var usuarioTeste = new Usuario("Usuário Teste", "teste@teste.com", senhaCriptografada);
+                usuarioTeste.Ativo = true;  // Garantir que o usuário está ativo
                 context.Usuarios.Add(usuarioTeste);
 
-                // Adicionar usuário de exemplo usado no teste
-                var usuarioExemplo = new Usuario("Test Example", "test@example.com", hashService.CriarHash("Senha123!"));
-                usuarioExemplo.Ativo = true; // Garantir que está ativo
-                context.Usuarios.Add(usuarioExemplo);
-               
-                var usuarios = new List<Usuario>
-                {
-                    new Usuario("Usuário Adicional 1", "usuario1@teste.com", hashService.CriarHash("Senha123!")),
-                    new Usuario("Usuário Adicional 2", "usuario2@teste.com", hashService.CriarHash("Senha123!")),
-                    new Usuario("Usuário Adicional 3", "usuario3@teste.com", hashService.CriarHash("Senha123!"))
-                };
+                // ... resto do método ...
 
-                // Garantir que todos estão ativos
-                foreach (var usuario in usuarios)
-                {
-                    usuario.Ativo = true;
-                }
-
-                context.Usuarios.AddRange(usuarios);
                 context.SaveChanges();
+
+                // Verificar se o usuário foi criado corretamente
+                var usuarioVerificacao = context.Usuarios.FirstOrDefault(u => u.Email == "teste@teste.com");
+                if (usuarioVerificacao != null)
+                {
+                    Console.WriteLine($"Usuário de teste criado com sucesso: {usuarioVerificacao.Id}, Ativo: {usuarioVerificacao.Ativo}");
+                }
+                else
+                {
+                    Console.WriteLine("ERRO: Usuário de teste não foi criado!");
+                }
             }
             catch (Exception ex)
             {
@@ -123,5 +120,7 @@ namespace APIProject.IntegrationTests
                 throw;
             }
         }
+
     }
 }
+

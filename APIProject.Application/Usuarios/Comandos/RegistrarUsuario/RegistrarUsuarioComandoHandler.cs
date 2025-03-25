@@ -34,18 +34,18 @@ namespace APIProject.Application.Usuarios.Comandos.RegistrarUsuario
                 throw new Exception("Email já cadastrado");
             }
 
-            // Criptografar a senha
-            string senhaCriptografada = _hashService.CriarHash(request.Senha);
+            // Criar novo usuário
+            var usuario = new Usuario(
+                request.Nome,
+                request.Email,
+                _hashService.CriarHash(request.Senha)
+            );
 
-            // Criar o usuário
-            var usuario = new Usuario(request.Nome, request.Email, senhaCriptografada);
-
-            // Salvar o usuário
             await _usuarioRepositorio.AdicionarAsync(usuario);
             await _usuarioRepositorio.SalvarAsync();
 
-            // Retornar o DTO
             return _mapper.Map<UsuarioDto>(usuario);
         }
     }
 }
+    

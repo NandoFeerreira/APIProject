@@ -5,10 +5,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace APIProject.API;
 
-
+// Necessário para testes de integração
 public partial class Program { }
 
-
+// Implementação principal da classe Program
 public partial class Program
 {
     public static void Main(string[] args)
@@ -24,8 +24,8 @@ public partial class Program
 
         // Configurar Swagger para ambiente não-teste
         if (!builder.Environment.IsEnvironment("Testing"))
-        {            
-            APIProject.API.Extensions.ServiceCollectionExtensions.AddOpenApi(builder.Services);
+        {
+           API.Extensions.ServiceCollectionExtensions.AddOpenApi(builder.Services);
         }
 
         // Construir o app
@@ -69,3 +69,4 @@ public partial class Program
         app.Run();
     }
 }
+
