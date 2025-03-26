@@ -1,6 +1,5 @@
 using APIProject.Infrastructure.Persistencia;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
 
 namespace APIProject.IntegrationTests

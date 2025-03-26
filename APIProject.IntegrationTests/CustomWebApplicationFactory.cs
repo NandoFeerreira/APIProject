@@ -9,9 +9,10 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace APIProject.IntegrationTests
 {
@@ -90,11 +91,9 @@ namespace APIProject.IntegrationTests
                 using var scope = Services.CreateScope();
                 var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
                 var hashService = scope.ServiceProvider.GetRequiredService<IHashService>();
+                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
                 // Limpar todos os usuários existentes
-                // (Este método precisaria ser adicionado ou adaptado à nova implementação do repositório)
-                // Para testes, podemos usar o contexto diretamente uma vez que estamos no mesmo assembly
-                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 context.Usuarios.RemoveRange(context.Usuarios);
                 context.SaveChanges();
 
@@ -110,10 +109,19 @@ namespace APIProject.IntegrationTests
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erro ao inicializar dados de teste: {ex.Message}");
+                var logger = Services.GetRequiredService<ILogger<CustomWebApplicationFactory>>();
+                logger.LogError(ex, "Erro ao inicializar dados de teste");
                 throw;
             }
         }
+
+        public async Task ResetDatabaseAsync()
+        {
+            using var scope = Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            await context.Database.EnsureDeletedAsync();
+            await context.Database.EnsureCreatedAsync();
+            SeedTestData();
+        }
     }
 }
-

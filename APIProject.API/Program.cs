@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using APIProject.API.Middlewares;
 using APIProject.Domain.Interfaces;
 using APIProject.Infrastructure.Persistencia.Repositorios;
+using FluentValidation;
 
 namespace APIProject.API;
 
@@ -14,7 +15,7 @@ public partial class Program { }
 // Implementação principal da classe Program
 public partial class Program
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
 
@@ -24,32 +25,38 @@ public partial class Program
         // Adicionar serviços da aplicação e infraestrutura
         builder.Services.AddApplicationServices(builder.Configuration);
         builder.Services.AddInfrastructureServices(builder.Configuration);
-        
+        builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
+
 
         // Configurar Swagger para ambiente não-teste
         if (!builder.Environment.IsEnvironment("Testing"))
         {
-           API.Extensions.ServiceCollectionExtensions.AddOpenApi(builder.Services);
+            API.Extensions.ServiceCollectionExtensions.AddOpenApi(builder.Services);
         }
 
         // Construir o app
         var app = builder.Build();
 
-        // Configurar pipeline de requisição
-        // Configurar migração do banco de dados apenas para ambientes não-teste
+        // Configurar migração do banco de dados
         if (!app.Environment.IsEnvironment("Testing"))
         {
-            // Aplicar migrações
-            using (var scope = app.Services.CreateScope())
-            {
-                var services = scope.ServiceProvider;
-                var context = services.GetRequiredService<ApplicationDbContext>();
+            // Verificar se deve aplicar migrações automaticamente
+            bool aplicarMigracoesAutomaticamente = builder.Configuration.GetValue<bool>("AplicarMigracoesAutomaticamente",
+                // Por padrão, aplicar automaticamente apenas em ambiente de desenvolvimento
+                app.Environment.IsDevelopment());
 
-                // Verifica se não estamos usando banco em memória antes de migrar
-                if (!context.Database.IsInMemory())
-                {
-                    context.Database.Migrate();
-                }
+            if (aplicarMigracoesAutomaticamente)
+            {
+                // Aplicar migrações automaticamente
+                await BancoDadosInicializador.InicializarAsync(app.Services);
+                app.Logger.LogInformation("Migrações aplicadas automaticamente");
+            }
+            else
+            {
+                // Apenas verificar se o banco existe, sem aplicar migrações
+                // Útil para produção onde as migrações devem ser controladas
+                await BancoDadosInicializador.VerificarBancoExisteAsync(app.Services);
+                app.Logger.LogInformation("Banco de dados verificado sem aplicar migrações automaticamente");
             }
 
             if (app.Environment.IsDevelopment())
@@ -63,7 +70,11 @@ public partial class Program
             }
         }
 
-        // Middleware comum a todos os ambientes
+        app.UseCors(builder => builder
+            .AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader());
+
         app.UseTratamentoExcecoes();
         app.UseHttpsRedirection();
         app.UseAuthentication();
@@ -73,4 +84,3 @@ public partial class Program
         app.Run();
     }
 }
-

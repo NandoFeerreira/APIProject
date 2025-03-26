@@ -9,7 +9,7 @@ namespace APIProject.API.Extensions
         {
             // Adiciona serviços da camada de aplicação
             services.AddApplicationLayer();
-            
+
 
             return services;
         }
@@ -23,12 +23,13 @@ namespace APIProject.API.Extensions
                 {
                     Title = "API Project",
                     Version = "v1",
-                    Description = "API Project with .NET Core"
+                    Description = "API para o projeto APIProject"
                 });
 
+                // Configuração para autenticação JWT no Swagger
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
-                    Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+                    Description = "JWT Authorization header using the Bearer scheme",
                     Name = "Authorization",
                     In = ParameterLocation.Header,
                     Type = SecuritySchemeType.ApiKey,
@@ -44,14 +45,11 @@ namespace APIProject.API.Extensions
                             {
                                 Type = ReferenceType.SecurityScheme,
                                 Id = "Bearer"
-                            },
-                            Scheme = "oauth2",
-                            Name = "Bearer",
-                            In = ParameterLocation.Header
-                        },
-                        new List<string>()
-                    }
-                });
+                            }
+                         },
+                        Array.Empty<string>()
+                     }
+                 });
             });
 
             return services;
