@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\APIProject.Application\APIProject.Application.csproj" />
+    <ProjectReference Include="..\APIProject.Domain\APIProject.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>

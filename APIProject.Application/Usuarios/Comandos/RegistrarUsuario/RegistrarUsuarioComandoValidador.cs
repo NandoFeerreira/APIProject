@@ -1,5 +1,4 @@
 using FluentValidation;
-using System.Text.RegularExpressions;
 
 namespace APIProject.Application.Usuarios.Comandos.RegistrarUsuario
 {

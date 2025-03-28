@@ -55,32 +55,6 @@ namespace APIProject.Domain.Servicos
             usuario.Ativo = true;
         }
 
-        public void AdicionarPerfil(Usuario usuario, string perfil)
-        {
-            if (usuario == null)
-                throw new ArgumentNullException(nameof(usuario));
-
-            if (string.IsNullOrWhiteSpace(perfil))
-                throw new ArgumentException("Perfil não pode ser vazio", nameof(perfil));
-
-            if (!usuario.Perfis.Contains(perfil))
-                usuario.Perfis.Add(perfil);
-        }
-
-        public void RemoverPerfil(Usuario usuario, string perfil)
-        {
-            if (usuario == null)
-                throw new ArgumentNullException(nameof(usuario));
-
-            if (string.IsNullOrWhiteSpace(perfil))
-                throw new ArgumentException("Perfil não pode ser vazio", nameof(perfil));
-
-            if (usuario.Perfis.Count <= 1 && usuario.Perfis.Contains(perfil))
-                throw new InvalidOperationException("Usuário deve ter pelo menos um perfil");
-
-            usuario.Perfis.Remove(perfil);
-        }
-
         public void RegistrarLogin(Usuario usuario)
         {
             if (usuario == null)
@@ -88,5 +62,7 @@ namespace APIProject.Domain.Servicos
 
             usuario.UltimoLogin = DateTime.UtcNow;
         }
+
+      
     }
 }

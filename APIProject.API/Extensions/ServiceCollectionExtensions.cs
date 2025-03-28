@@ -1,4 +1,7 @@
 using APIProject.Application.Extensions;
+using APIProject.Application.Usuarios.Comandos.LoginUsuario;
+using APIProject.Application.Usuarios.Comandos.RegistrarUsuario;
+using FluentValidation;
 using Microsoft.OpenApi.Models;
 
 namespace APIProject.API.Extensions
@@ -9,6 +12,9 @@ namespace APIProject.API.Extensions
         {
             // Adiciona serviços da camada de aplicação
             services.AddApplicationLayer();
+           
+            services.AddScoped<IValidator<LoginUsuarioComando>, LoginUsuarioComandoValidador>();
+            services.AddScoped<IValidator<RegistrarUsuarioComando>, RegistrarUsuarioComandoValidador>();
 
 
             return services;

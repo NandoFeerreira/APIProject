@@ -1,7 +1,6 @@
 ﻿using APIProject.Domain.Entidades;
 using APIProject.Domain.Servicos;
 using System;
-using System.Collections.Generic;
 using Xunit;
 
 namespace APIProject.UnitTests.Domain.Servicos
@@ -83,33 +82,6 @@ namespace APIProject.UnitTests.Domain.Servicos
         }
 
         [Fact]
-        public void AdicionarPerfil_DeveAdicionarPerfilAoUsuario()
-        {
-            // Arrange
-            var usuario = new Usuario("Nome Teste", "teste@teste.com", "hash");
-            var novoPerfil = "Admin";
-
-            // Act
-            _usuarioServico.AdicionarPerfil(usuario, novoPerfil);
-
-            // Assert
-            Assert.Contains(novoPerfil, usuario.Perfis);
-        }
-
-        [Fact]
-        public void RemoverPerfil_TentandoRemoverUnicoPerfil_DeveLancarInvalidOperationException()
-        {
-            // Arrange
-            var usuario = new Usuario("Nome Teste", "teste@teste.com", "hash");
-            // Por padrão, o usuário tem o perfil "Usuario"
-
-            // Act & Assert
-            var exception = Assert.Throws<InvalidOperationException>(
-                () => _usuarioServico.RemoverPerfil(usuario, "Usuario"));
-            Assert.Contains("Usuário deve ter pelo menos um perfil", exception.Message);
-        }
-
-        [Fact]
         public void RegistrarLogin_DeveAtualizarUltimoLogin()
         {
             // Arrange
@@ -123,5 +95,7 @@ namespace APIProject.UnitTests.Domain.Servicos
             Assert.NotNull(usuario.UltimoLogin);
             Assert.True(usuario.UltimoLogin > DateTime.UtcNow.AddMinutes(-1));
         }
+
+     
     }
 }

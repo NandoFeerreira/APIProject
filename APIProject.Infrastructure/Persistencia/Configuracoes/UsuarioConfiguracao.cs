@@ -33,11 +33,7 @@ namespace APIProject.Infrastructure.Persistencia.Configuracoes
             builder.Property(u => u.Ativo)
                 .IsRequired();
 
-            // Armazenar a lista de perfis como JSON
-            builder.Property(u => u.Perfis)
-                .HasConversion(
-                    v => JsonSerializer.Serialize(v, new JsonSerializerOptions()),
-                    v => JsonSerializer.Deserialize<List<string>>(v, new JsonSerializerOptions()) ?? new List<string>());
+            // Remover configuração de relacionamento com Perfil
         }
     }
 }

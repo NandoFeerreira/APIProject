@@ -3,6 +3,7 @@ using APIProject.Application.Interfaces;
 using APIProject.Domain.Excecoes;
 using APIProject.Domain.Interfaces;
 using APIProject.Domain.Interfaces.Servicos;
+using FluentValidation;
 using MediatR;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,21 +16,37 @@ namespace APIProject.Application.Usuarios.Comandos.LoginUsuario
         private readonly IHashService _hashService;
         private readonly ITokenService _tokenService;
         private readonly IUsuarioServico _usuarioServico;
+        private readonly IValidator<LoginUsuarioComando> _validator;
 
         public LoginUsuarioComandoHandler(
             IUnitOfWork unitOfWork,
             IHashService hashService,
             ITokenService tokenService,
-            IUsuarioServico usuarioServico)
+            IUsuarioServico usuarioServico,
+            IValidator<LoginUsuarioComando> validator)
         {
             _unitOfWork = unitOfWork;
             _hashService = hashService;
             _tokenService = tokenService;
             _usuarioServico = usuarioServico;
+            _validator = validator;
         }
 
         public async Task<TokenDto> Handle(LoginUsuarioComando request, CancellationToken cancellationToken)
         {
+            // Validar comando usando o validador existente
+            var validationResult = await _validator.ValidateAsync(request, cancellationToken);
+            if (!validationResult.IsValid)
+            {
+                var erros = validationResult.Errors.GroupBy(e => e.PropertyName)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.Select(e => e.ErrorMessage).ToArray()
+                    );
+
+                throw new ValidacaoException(erros);
+            }
+
             // Buscar o usuário pelo email
             var usuario = await _unitOfWork.Usuarios.ObterPorEmailAsync(request.Email);
             if (usuario == null)
@@ -58,4 +75,3 @@ namespace APIProject.Application.Usuarios.Comandos.LoginUsuario
         }
     }
 }
-

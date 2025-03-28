@@ -6,44 +6,122 @@ using APIProject.Domain.Entidades;
 using APIProject.Domain.Excecoes;
 using APIProject.Domain.Interfaces;
 using APIProject.Domain.Interfaces.Servicos;
+using AutoMapper;
+using FluentValidation;
+using FluentValidation.Results;
 using Moq;
 using Xunit;
 
 namespace APIProject.UnitTests.Comandos
 {
-    public class AutenticacaoComandoTests
+    /// <summary>
+    /// Fixture compartilhada para os testes de autenticação
+    /// </summary>
+    public class AutenticacaoFixture
     {
-        private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
-        private readonly Mock<IUsuarioRepositorio> _usuarioRepositorioMock = new();
-        private readonly Mock<IHashService> _hashServiceMock = new();
-        private readonly Mock<ITokenService> _tokenServiceMock = new();
-        private readonly Mock<IUsuarioServico> _usuarioServicoMock = new();
+        public Mock<IUnitOfWork> UnitOfWorkMock { get; }
+        public Mock<IUsuarioRepositorio> UsuarioRepositorioMock { get; }
+        public Mock<IHashService> HashServiceMock { get; }
+        public Mock<ITokenService> TokenServiceMock { get; }
+        public Mock<IUsuarioServico> UsuarioServicoMock { get; }
+        public Mock<IValidator<LoginUsuarioComando>> LoginValidatorMock { get; }
+        public Mock<IValidator<RegistrarUsuarioComando>> RegistroValidatorMock { get; }
+        public Mock<IMapper> MapperMock { get; }
 
-        public AutenticacaoComandoTests()
+        public AutenticacaoFixture()
         {
-            // Configurar o repositório mock para ser retornado pelo UnitOfWork
-            _unitOfWorkMock.Setup(uow => uow.Usuarios).Returns(_usuarioRepositorioMock.Object);
+            UnitOfWorkMock = new Mock<IUnitOfWork>();
+            UsuarioRepositorioMock = new Mock<IUsuarioRepositorio>();
+            HashServiceMock = new Mock<IHashService>();
+            TokenServiceMock = new Mock<ITokenService>();
+            UsuarioServicoMock = new Mock<IUsuarioServico>();
+            LoginValidatorMock = new Mock<IValidator<LoginUsuarioComando>>();
+            RegistroValidatorMock = new Mock<IValidator<RegistrarUsuarioComando>>();
+            MapperMock = new Mock<IMapper>();
+
+            // Configurar o UnitOfWork para retornar o repositório de usuários mockado
+            UnitOfWorkMock.Setup(uow => uow.Usuarios).Returns(UsuarioRepositorioMock.Object);
+
+            // Configurar os validadores para retornar sucesso por padrão
+            LoginValidatorMock.Setup(v => v.ValidateAsync(It.IsAny<LoginUsuarioComando>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ValidationResult());
+
+            RegistroValidatorMock.Setup(v => v.ValidateAsync(It.IsAny<RegistrarUsuarioComando>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ValidationResult());
         }
+
+        public LoginUsuarioComandoHandler CreateLoginHandler()
+        {
+            return new LoginUsuarioComandoHandler(
+                UnitOfWorkMock.Object,
+                HashServiceMock.Object,
+                TokenServiceMock.Object,
+                UsuarioServicoMock.Object,
+                LoginValidatorMock.Object);
+        }
+
+        public RegistrarUsuarioComandoHandler CreateRegistroHandler()
+        {
+            return new RegistrarUsuarioComandoHandler(
+                UnitOfWorkMock.Object,
+                MapperMock.Object,
+                HashServiceMock.Object,
+                RegistroValidatorMock.Object);
+        }
+
+        public Usuario CriarUsuarioTeste(string nome, string email, string senhaHash, bool ativo = true)
+        {
+            var usuario = new Usuario(nome, email, senhaHash);
+            usuario.Ativo = ativo;
+            return usuario;
+        }
+    }
+
+    public class AutenticacaoComandoTests : IClassFixture<AutenticacaoFixture>
+    {
+        private readonly AutenticacaoFixture _fixture;
+
+        public AutenticacaoComandoTests(AutenticacaoFixture fixture)
+        {
+            _fixture = fixture;
+
+            // Resetar as configurações dos mocks antes de cada teste
+            _fixture.UsuarioRepositorioMock.Reset();
+            _fixture.HashServiceMock.Reset();
+            _fixture.TokenServiceMock.Reset();
+            _fixture.UsuarioServicoMock.Reset();
+            _fixture.LoginValidatorMock.Reset();
+            _fixture.RegistroValidatorMock.Reset();
+            _fixture.MapperMock.Reset();
+            _fixture.UnitOfWorkMock.Reset();
+
+            // Reconfigurar o UnitOfWork após o reset
+            _fixture.UnitOfWorkMock.Setup(uow => uow.Usuarios).Returns(_fixture.UsuarioRepositorioMock.Object);
+
+            // Reconfigurar os validadores com sucesso por padrão
+            _fixture.LoginValidatorMock.Setup(v => v.ValidateAsync(It.IsAny<LoginUsuarioComando>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ValidationResult());
+
+            _fixture.RegistroValidatorMock.Setup(v => v.ValidateAsync(It.IsAny<RegistrarUsuarioComando>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ValidationResult());
+        }
+
+        #region Login Tests
 
         [Fact]
         public async Task Handle_LoginComando_CredenciaisValidas_RetornaToken()
         {
             // Arrange
             var comando = new LoginUsuarioComando { Email = "teste@teste.com", Senha = "senha123" };
-            var handler = new LoginUsuarioComandoHandler(
-                _unitOfWorkMock.Object,
-                _hashServiceMock.Object,
-                _tokenServiceMock.Object,
-                _usuarioServicoMock.Object);
+            var handler = _fixture.CreateLoginHandler();
 
-            var usuario = new Usuario("Teste", comando.Email, "senha_hash");
-            usuario.Ativo = true; // Garantir que o usuário está ativo
+            var usuario = _fixture.CriarUsuarioTeste("Teste", comando.Email, "senha_hash");
 
-            _usuarioRepositorioMock.Setup(x => x.ObterPorEmailAsync(comando.Email))
+            _fixture.UsuarioRepositorioMock.Setup(x => x.ObterPorEmailAsync(comando.Email))
                 .ReturnsAsync(usuario);
-            _hashServiceMock.Setup(x => x.VerificarHash(comando.Senha, usuario.Senha))
+            _fixture.HashServiceMock.Setup(x => x.VerificarHash(comando.Senha, usuario.Senha))
                 .Returns(true);
-            _tokenServiceMock.Setup(x => x.GerarToken(usuario))
+            _fixture.TokenServiceMock.Setup(x => x.GerarToken(usuario))
                 .Returns(new TokenDto { Token = "token_gerado" });
 
             // Act
@@ -51,8 +129,32 @@ namespace APIProject.UnitTests.Comandos
 
             // Assert
             Assert.Equal("token_gerado", resultado.Token);
-            _usuarioServicoMock.Verify(x => x.RegistrarLogin(usuario), Times.Once);
-            _unitOfWorkMock.Verify(uow => uow.CommitAsync(), Times.Once);
+            _fixture.UsuarioServicoMock.Verify(x => x.RegistrarLogin(usuario), Times.Once);
+            _fixture.UnitOfWorkMock.Verify(uow => uow.CommitAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task Handle_LoginComando_ValidacaoInvalida_LancaValidacaoException()
+        {
+            // Arrange
+            var comando = new LoginUsuarioComando { Email = "email_invalido", Senha = "" };
+            var handler = _fixture.CreateLoginHandler();
+
+            var validationFailures = new List<ValidationFailure>
+            {
+                new ValidationFailure("Email", "Email inválido"),
+                new ValidationFailure("Senha", "Senha é obrigatória")
+            };
+
+            _fixture.LoginValidatorMock.Setup(v => v.ValidateAsync(comando, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ValidationResult(validationFailures));
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ValidacaoException>(
+                () => handler.Handle(comando, CancellationToken.None));
+
+            Assert.Contains("Email", exception.Erros.Keys);
+            Assert.Contains("Senha", exception.Erros.Keys);
         }
 
         [Fact]
@@ -60,13 +162,9 @@ namespace APIProject.UnitTests.Comandos
         {
             // Arrange
             var comando = new LoginUsuarioComando { Email = "inexistente@teste.com", Senha = "senha" };
-            var handler = new LoginUsuarioComandoHandler(
-                _unitOfWorkMock.Object,
-                _hashServiceMock.Object,
-                _tokenServiceMock.Object,
-                _usuarioServicoMock.Object);
+            var handler = _fixture.CreateLoginHandler();
 
-            _usuarioRepositorioMock.Setup(x => x.ObterPorEmailAsync(comando.Email))
+            _fixture.UsuarioRepositorioMock.Setup(x => x.ObterPorEmailAsync(comando.Email))
                 .ReturnsAsync((Usuario)null);
 
             // Act & Assert
@@ -80,16 +178,11 @@ namespace APIProject.UnitTests.Comandos
         {
             // Arrange
             var comando = new LoginUsuarioComando { Email = "inativo@teste.com", Senha = "senha123" };
-            var handler = new LoginUsuarioComandoHandler(
-                _unitOfWorkMock.Object,
-                _hashServiceMock.Object,
-                _tokenServiceMock.Object,
-                _usuarioServicoMock.Object);
+            var handler = _fixture.CreateLoginHandler();
 
-            var usuario = new Usuario("Inativo", comando.Email, "senha_hash");
-            usuario.Ativo = false; // Usuário inativo
+            var usuario = _fixture.CriarUsuarioTeste("Inativo", comando.Email, "senha_hash", false);
 
-            _usuarioRepositorioMock.Setup(x => x.ObterPorEmailAsync(comando.Email))
+            _fixture.UsuarioRepositorioMock.Setup(x => x.ObterPorEmailAsync(comando.Email))
                 .ReturnsAsync(usuario);
 
             // Act & Assert
@@ -103,18 +196,13 @@ namespace APIProject.UnitTests.Comandos
         {
             // Arrange
             var comando = new LoginUsuarioComando { Email = "teste@teste.com", Senha = "senha_errada" };
-            var handler = new LoginUsuarioComandoHandler(
-                _unitOfWorkMock.Object,
-                _hashServiceMock.Object,
-                _tokenServiceMock.Object,
-                _usuarioServicoMock.Object);
+            var handler = _fixture.CreateLoginHandler();
 
-            var usuario = new Usuario("Teste", comando.Email, "senha_hash");
-            usuario.Ativo = true;
+            var usuario = _fixture.CriarUsuarioTeste("Teste", comando.Email, "senha_hash");
 
-            _usuarioRepositorioMock.Setup(x => x.ObterPorEmailAsync(comando.Email))
+            _fixture.UsuarioRepositorioMock.Setup(x => x.ObterPorEmailAsync(comando.Email))
                 .ReturnsAsync(usuario);
-            _hashServiceMock.Setup(x => x.VerificarHash(comando.Senha, usuario.Senha))
+            _fixture.HashServiceMock.Setup(x => x.VerificarHash(comando.Senha, usuario.Senha))
                 .Returns(false); // Senha inválida
 
             // Act & Assert
@@ -122,6 +210,10 @@ namespace APIProject.UnitTests.Comandos
                 () => handler.Handle(comando, CancellationToken.None));
             Assert.Equal("Usuário ou senha inválidos", exception.Message);
         }
+
+        #endregion
+
+        #region Registro Tests
 
         [Fact]
         public async Task Handle_RegistroComando_RegistroValido_CriaUsuario()
@@ -135,17 +227,13 @@ namespace APIProject.UnitTests.Comandos
                 ConfirmacaoSenha = "Senha123!"
             };
 
-            var mapperMock = new Mock<AutoMapper.IMapper>();
-            var handler = new RegistrarUsuarioComandoHandler(
-                _unitOfWorkMock.Object,
-                mapperMock.Object,
-                _hashServiceMock.Object);
+            var handler = _fixture.CreateRegistroHandler();
 
-            _hashServiceMock.Setup(x => x.CriarHash(comando.Senha))
+            _fixture.HashServiceMock.Setup(x => x.CriarHash(comando.Senha))
                 .Returns("hash_senha");
-            _usuarioRepositorioMock.Setup(x => x.EmailExisteAsync(comando.Email))
+            _fixture.UsuarioRepositorioMock.Setup(x => x.EmailExisteAsync(comando.Email))
                 .ReturnsAsync(false);
-            mapperMock.Setup(x => x.Map<UsuarioDto>(It.IsAny<Usuario>()))
+            _fixture.MapperMock.Setup(x => x.Map<UsuarioDto>(It.IsAny<Usuario>()))
                 .Returns(new UsuarioDto { Email = comando.Email });
 
             // Act
@@ -154,9 +242,44 @@ namespace APIProject.UnitTests.Comandos
             // Assert
             Assert.NotNull(resultado);
             Assert.Equal(comando.Email, resultado.Email);
-            _usuarioRepositorioMock.Verify(x => x.AdicionarAsync(It.Is<Usuario>(u =>
+            _fixture.UsuarioRepositorioMock.Verify(x => x.AdicionarAsync(It.Is<Usuario>(u =>
                 u.Email == comando.Email && u.Senha == "hash_senha")), Times.Once);
-            _unitOfWorkMock.Verify(uow => uow.CommitAsync(), Times.Once);
+            _fixture.UnitOfWorkMock.Verify(uow => uow.CommitAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task Handle_RegistroComando_ValidacaoInvalida_LancaValidacaoException()
+        {
+            // Arrange
+            var comando = new RegistrarUsuarioComando
+            {
+                Nome = "",
+                Email = "email_invalido",
+                Senha = "123",
+                ConfirmacaoSenha = "456"
+            };
+
+            var handler = _fixture.CreateRegistroHandler();
+
+            var validationFailures = new List<ValidationFailure>
+            {
+                new ValidationFailure("Nome", "Nome é obrigatório"),
+                new ValidationFailure("Email", "Email inválido"),
+                new ValidationFailure("Senha", "Senha deve ter pelo menos 6 caracteres"),
+                new ValidationFailure("ConfirmacaoSenha", "Senhas não conferem")
+            };
+
+            _fixture.RegistroValidatorMock.Setup(v => v.ValidateAsync(comando, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ValidationResult(validationFailures));
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ValidacaoException>(
+                () => handler.Handle(comando, CancellationToken.None));
+
+            Assert.Contains("Nome", exception.Erros.Keys);
+            Assert.Contains("Email", exception.Erros.Keys);
+            Assert.Contains("Senha", exception.Erros.Keys);
+            Assert.Contains("ConfirmacaoSenha", exception.Erros.Keys);
         }
 
         [Fact]
@@ -171,13 +294,9 @@ namespace APIProject.UnitTests.Comandos
                 ConfirmacaoSenha = "Senha123!"
             };
 
-            var mapperMock = new Mock<AutoMapper.IMapper>();
-            var handler = new RegistrarUsuarioComandoHandler(
-                _unitOfWorkMock.Object,
-                mapperMock.Object,
-                _hashServiceMock.Object);
+            var handler = _fixture.CreateRegistroHandler();
 
-            _usuarioRepositorioMock.Setup(x => x.EmailExisteAsync(comando.Email))
+            _fixture.UsuarioRepositorioMock.Setup(x => x.EmailExisteAsync(comando.Email))
                 .ReturnsAsync(true); // Email já existe
 
             // Act & Assert
@@ -187,34 +306,6 @@ namespace APIProject.UnitTests.Comandos
             Assert.Equal($"Já existe um(a) Usuário com email '{comando.Email}'.", exception.Message);
         }
 
-        [Fact]
-        public async Task Handle_RegistroComando_SenhasNaoCorrespondem_LancaValidacaoException()
-        {
-            // Arrange
-            var comando = new RegistrarUsuarioComando
-            {
-                Nome = "Novo Usuário",
-                Email = "novo@teste.com",
-                Senha = "Senha123!",
-                ConfirmacaoSenha = "SenhaErrada!"
-            };
-
-            var mapperMock = new Mock<AutoMapper.IMapper>();
-            var handler = new RegistrarUsuarioComandoHandler(
-                _unitOfWorkMock.Object,
-                mapperMock.Object,
-                _hashServiceMock.Object);
-
-            _usuarioRepositorioMock.Setup(x => x.EmailExisteAsync(comando.Email))
-                .ReturnsAsync(false);
-
-            // Act & Assert
-            var exception = await Assert.ThrowsAsync<ValidacaoException>(
-                () => handler.Handle(comando, CancellationToken.None));
-
-            Assert.Contains("ConfirmacaoSenha", exception.Erros.Keys);
-            Assert.Contains("A senha e a confirmação de senha não correspondem.", exception.Erros["ConfirmacaoSenha"]);
-        }
+        #endregion
     }
 }
-

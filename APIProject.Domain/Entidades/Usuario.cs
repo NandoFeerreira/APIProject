@@ -5,14 +5,13 @@ namespace APIProject.Domain.Entidades
 {
     public class Usuario
     {
-        public Guid Id { get;  set; }
-        public string Nome { get;  set; }
-        public string Email { get;  set; }
-        public string Senha { get;  set; }
-        public DateTime DataCriacao { get;  set; }
-        public DateTime? UltimoLogin { get;  set; }
-        public bool Ativo { get;  set; }
-        public ICollection<string> Perfis { get;  set; }
+        public Guid Id { get; set; }
+        public string Nome { get; set; }
+        public string Email { get; set; }
+        public string Senha { get; set; }
+        public DateTime DataCriacao { get; set; }
+        public DateTime? UltimoLogin { get; set; }
+        public bool Ativo { get; set; }       
 
         protected Usuario() { }
 
@@ -29,7 +28,6 @@ namespace APIProject.Domain.Entidades
             Senha = senhaCriptografada;
             DataCriacao = DateTime.UtcNow;
             Ativo = true;
-            Perfis = new List<string> { "Usuario" };
         }
     }
 }

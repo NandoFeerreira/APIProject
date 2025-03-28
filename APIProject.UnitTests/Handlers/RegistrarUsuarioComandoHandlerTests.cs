@@ -5,7 +5,14 @@ using APIProject.Domain.Entidades;
 using APIProject.Domain.Excecoes;
 using APIProject.Domain.Interfaces;
 using AutoMapper;
+using FluentValidation;
+using FluentValidation.Results;
 using Moq;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace APIProject.UnitTests.Application.Usuarios.Comandos.RegistrarUsuario
@@ -16,6 +23,7 @@ namespace APIProject.UnitTests.Application.Usuarios.Comandos.RegistrarUsuario
         private readonly Mock<IUsuarioRepositorio> _usuarioRepositorioMock;
         private readonly Mock<IMapper> _mapperMock;
         private readonly Mock<IHashService> _hashServiceMock;
+        private readonly Mock<IValidator<RegistrarUsuarioComando>> _validatorMock;
         private readonly RegistrarUsuarioComandoHandler _handler;
 
         public RegistrarUsuarioComandoHandlerTests()
@@ -24,14 +32,20 @@ namespace APIProject.UnitTests.Application.Usuarios.Comandos.RegistrarUsuario
             _usuarioRepositorioMock = new Mock<IUsuarioRepositorio>();
             _mapperMock = new Mock<IMapper>();
             _hashServiceMock = new Mock<IHashService>();
+            _validatorMock = new Mock<IValidator<RegistrarUsuarioComando>>();
 
             // Configurar o UnitOfWork para retornar o repositório de usuários mockado
             _unitOfWorkMock.Setup(uow => uow.Usuarios).Returns(_usuarioRepositorioMock.Object);
 
+            // Configurar o validator para retornar sucesso por padrão
+            _validatorMock.Setup(x => x.ValidateAsync(It.IsAny<RegistrarUsuarioComando>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ValidationResult());
+
             _handler = new RegistrarUsuarioComandoHandler(
                 _unitOfWorkMock.Object,
                 _mapperMock.Object,
-                _hashServiceMock.Object);
+                _hashServiceMock.Object,
+                _validatorMock.Object);
         }
 
         [Fact]
@@ -74,6 +88,39 @@ namespace APIProject.UnitTests.Application.Usuarios.Comandos.RegistrarUsuario
         }
 
         [Fact]
+        public async Task Handle_ComValidacaoInvalida_LancaValidacaoException()
+        {
+            // Arrange
+            var comando = new RegistrarUsuarioComando
+            {
+                Nome = "",
+                Email = "email_invalido",
+                Senha = "123",
+                ConfirmacaoSenha = "456"
+            };
+
+            var validationFailures = new List<ValidationFailure>
+            {
+                new ValidationFailure("Nome", "Nome é obrigatório"),
+                new ValidationFailure("Email", "Email inválido"),
+                new ValidationFailure("Senha", "Senha deve ter pelo menos 6 caracteres"),
+                new ValidationFailure("ConfirmacaoSenha", "Senhas não conferem")
+            };
+
+            _validatorMock.Setup(x => x.ValidateAsync(comando, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ValidationResult(validationFailures));
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ValidacaoException>(
+                () => _handler.Handle(comando, CancellationToken.None));
+
+            Assert.Contains("Nome", exception.Erros.Keys);
+            Assert.Contains("Email", exception.Erros.Keys);
+            Assert.Contains("Senha", exception.Erros.Keys);
+            Assert.Contains("ConfirmacaoSenha", exception.Erros.Keys);
+        }
+
+        [Fact]
         public async Task Handle_ComEmailJaExistente_LancaDadosDuplicadosException()
         {
             // Arrange
@@ -94,29 +141,5 @@ namespace APIProject.UnitTests.Application.Usuarios.Comandos.RegistrarUsuario
 
             Assert.Equal($"Já existe um(a) Usuário com email '{comando.Email}'.", exception.Message);
         }
-
-        [Fact]
-        public async Task Handle_ComSenhasNaoCorrespondentes_LancaValidacaoException()
-        {
-            // Arrange
-            var comando = new RegistrarUsuarioComando
-            {
-                Nome = "Novo Usuário",
-                Email = "novo@teste.com",
-                Senha = "Senha123!",
-                ConfirmacaoSenha = "SenhaDiferente!"
-            };
-
-            _usuarioRepositorioMock.Setup(x => x.EmailExisteAsync(comando.Email))
-                .ReturnsAsync(false);
-
-            // Act & Assert
-            var exception = await Assert.ThrowsAsync<ValidacaoException>(
-                () => _handler.Handle(comando, CancellationToken.None));
-
-            Assert.Contains("ConfirmacaoSenha", exception.Erros.Keys);
-            Assert.Contains("A senha e a confirmação de senha não correspondem.", exception.Erros["ConfirmacaoSenha"]);
-        }
     }
 }
-

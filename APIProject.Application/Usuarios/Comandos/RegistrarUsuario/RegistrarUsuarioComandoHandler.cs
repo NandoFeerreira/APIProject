@@ -4,6 +4,7 @@ using APIProject.Domain.Entidades;
 using APIProject.Domain.Excecoes;
 using APIProject.Domain.Interfaces;
 using AutoMapper;
+using FluentValidation;
 using MediatR;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,29 +16,39 @@ namespace APIProject.Application.Usuarios.Comandos.RegistrarUsuario
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IHashService _hashService;
+        private readonly IValidator<RegistrarUsuarioComando> _validator;
 
         public RegistrarUsuarioComandoHandler(
             IUnitOfWork unitOfWork,
             IMapper mapper,
-            IHashService hashService)
+            IHashService hashService,
+            IValidator<RegistrarUsuarioComando> validator)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _hashService = hashService;
+            _validator = validator;
         }
 
         public async Task<UsuarioDto> Handle(RegistrarUsuarioComando request, CancellationToken cancellationToken)
         {
+            // Validar comando usando o validador existente
+            var validationResult = await _validator.ValidateAsync(request, cancellationToken);
+            if (!validationResult.IsValid)
+            {
+                var erros = validationResult.Errors.GroupBy(e => e.PropertyName)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.Select(e => e.ErrorMessage).ToArray()
+                    );
+
+                throw new ValidacaoException(erros);
+            }
+
             // Verificar se o email já existe
             if (await _unitOfWork.Usuarios.EmailExisteAsync(request.Email))
             {
                 throw new DadosDuplicadosException("Usuário", "email", request.Email);
-            }
-
-            // Validar a confirmação de senha
-            if (request.Senha != request.ConfirmacaoSenha)
-            {
-                throw new ValidacaoException("ConfirmacaoSenha", "A senha e a confirmação de senha não correspondem.");
             }
 
             // Criar novo usuário
@@ -54,4 +65,3 @@ namespace APIProject.Application.Usuarios.Comandos.RegistrarUsuario
         }
     }
 }
-

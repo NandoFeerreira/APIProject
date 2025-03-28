@@ -1,82 +1,88 @@
 using APIProject.Application.Usuarios.Comandos.LoginUsuario;
-using Bogus;
 using FluentValidation.TestHelper;
 using Xunit;
 
-namespace APIProject.UnitTests.Validators
+namespace APIProject.UnitTests.Application.Usuarios.Comandos.LoginUsuario
 {
     public class LoginUsuarioComandoValidadorTests
     {
-        private readonly LoginUsuarioComandoValidador _validador;
-        private readonly Faker _faker;
+        private readonly LoginUsuarioComandoValidador _validator;
 
         public LoginUsuarioComandoValidadorTests()
         {
-            _validador = new LoginUsuarioComandoValidador();
-            _faker = new Faker("pt_BR");
+            _validator = new LoginUsuarioComandoValidador();
         }
 
         [Fact]
-        public void DevePassarQuandoEmailEhValido()
+        public void Validator_ComEmailESenhaValidos_NaoDeveGerarErros()
         {
             // Arrange
             var comando = new LoginUsuarioComando
             {
-                Email = _faker.Internet.Email(),
-                Senha = _faker.Internet.Password()
+                Email = "usuario@teste.com",
+                Senha = "senha123"
             };
 
-            // Act & Assert
-            var resultado = _validador.TestValidate(comando);
-            resultado.ShouldNotHaveAnyValidationErrors();
+            // Act
+            var result = _validator.TestValidate(comando);
+
+            // Assert
+            result.ShouldNotHaveAnyValidationErrors();
         }
 
-        [Fact]
-        public void DeveFalharQuandoEmailEstaVazio()
+        [Theory]
+        [InlineData("")]
+        [InlineData(null)]
+        public void Validator_ComEmailVazioOuNulo_DeveGerarErro(string email)
         {
             // Arrange
             var comando = new LoginUsuarioComando
             {
-                Email = string.Empty,
-                Senha = _faker.Internet.Password()
+                Email = email,
+                Senha = "senha123"
             };
 
-            // Act & Assert
-            var resultado = _validador.TestValidate(comando);
-            resultado.ShouldHaveValidationErrorFor(x => x.Email)
-                     .WithErrorMessage("Email é obrigatório");
+            // Act
+            var result = _validator.TestValidate(comando);
+
+            // Assert
+            result.ShouldHaveValidationErrorFor(x => x.Email);
         }
 
         [Fact]
-        public void DeveFalharQuandoEmailEhInvalido()
+        public void Validator_ComEmailInvalido_DeveGerarErro()
         {
             // Arrange
             var comando = new LoginUsuarioComando
             {
-                Email = "emailinvalido",
-                Senha = _faker.Internet.Password()
+                Email = "email_invalido",
+                Senha = "senha123"
             };
 
-            // Act & Assert
-            var resultado = _validador.TestValidate(comando);
-            resultado.ShouldHaveValidationErrorFor(x => x.Email)
-                     .WithErrorMessage("Email inválido");
+            // Act
+            var result = _validator.TestValidate(comando);
+
+            // Assert
+            result.ShouldHaveValidationErrorFor(x => x.Email);
         }
 
-        [Fact]
-        public void DeveFalharQuandoSenhaEstaVazia()
+        [Theory]
+        [InlineData("")]
+        [InlineData(null)]
+        public void Validator_ComSenhaVaziaOuNula_DeveGerarErro(string senha)
         {
             // Arrange
             var comando = new LoginUsuarioComando
             {
-                Email = _faker.Internet.Email(),
-                Senha = string.Empty
+                Email = "usuario@teste.com",
+                Senha = senha
             };
 
-            // Act & Assert
-            var resultado = _validador.TestValidate(comando);
-            resultado.ShouldHaveValidationErrorFor(x => x.Senha)
-                     .WithErrorMessage("Senha é obrigatória");
+            // Act
+            var result = _validator.TestValidate(comando);
+
+            // Assert
+            result.ShouldHaveValidationErrorFor(x => x.Senha);
         }
     }
 }

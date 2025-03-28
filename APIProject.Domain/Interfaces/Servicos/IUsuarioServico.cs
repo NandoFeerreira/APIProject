@@ -11,8 +11,6 @@ namespace APIProject.Domain.Interfaces.Servicos
         void AtualizarSenha(Usuario usuario, string novaSenhaCriptografada);
         void DesativarUsuario(Usuario usuario);
         void AtivarUsuario(Usuario usuario);
-        void AdicionarPerfil(Usuario usuario, string perfil);
-        void RemoverPerfil(Usuario usuario, string perfil);
         void RegistrarLogin(Usuario usuario);
     }
 }

@@ -10,7 +10,6 @@ namespace APIProject.Application.DTOs
         public string Email { get; set; }
         public DateTime DataCriacao { get; set; }
         public DateTime? UltimoLogin { get; set; }
-        public bool Ativo { get; set; }
-        public IEnumerable<string> Perfis { get; set; }
+        public bool Ativo { get; set; }       
     }
 }

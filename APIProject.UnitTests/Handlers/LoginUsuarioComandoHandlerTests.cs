@@ -5,7 +5,13 @@ using APIProject.Domain.Entidades;
 using APIProject.Domain.Excecoes;
 using APIProject.Domain.Interfaces;
 using APIProject.Domain.Interfaces.Servicos;
+using FluentValidation;
+using FluentValidation.Results;
 using Moq;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace APIProject.UnitTests.Application.Usuarios.Comandos.LoginUsuario
@@ -17,6 +23,7 @@ namespace APIProject.UnitTests.Application.Usuarios.Comandos.LoginUsuario
         private readonly Mock<IHashService> _hashServiceMock;
         private readonly Mock<ITokenService> _tokenServiceMock;
         private readonly Mock<IUsuarioServico> _usuarioServicoMock;
+        private readonly Mock<IValidator<LoginUsuarioComando>> _validatorMock;
         private readonly LoginUsuarioComandoHandler _handler;
 
         public LoginUsuarioComandoHandlerTests()
@@ -26,15 +33,21 @@ namespace APIProject.UnitTests.Application.Usuarios.Comandos.LoginUsuario
             _hashServiceMock = new Mock<IHashService>();
             _tokenServiceMock = new Mock<ITokenService>();
             _usuarioServicoMock = new Mock<IUsuarioServico>();
+            _validatorMock = new Mock<IValidator<LoginUsuarioComando>>();
 
             // Configurar o UnitOfWork para retornar o repositório de usuários mockado
             _unitOfWorkMock.Setup(uow => uow.Usuarios).Returns(_usuarioRepositorioMock.Object);
+
+            // Configurar o validator para retornar sucesso por padrão
+            _validatorMock.Setup(x => x.ValidateAsync(It.IsAny<LoginUsuarioComando>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ValidationResult());
 
             _handler = new LoginUsuarioComandoHandler(
                 _unitOfWorkMock.Object,
                 _hashServiceMock.Object,
                 _tokenServiceMock.Object,
-                _usuarioServicoMock.Object);
+                _usuarioServicoMock.Object,
+                _validatorMock.Object);
         }
 
         [Fact]
@@ -68,6 +81,33 @@ namespace APIProject.UnitTests.Application.Usuarios.Comandos.LoginUsuario
             Assert.Equal(tokenDto, result);
             _usuarioServicoMock.Verify(x => x.RegistrarLogin(usuario), Times.Once);
             _unitOfWorkMock.Verify(x => x.CommitAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task Handle_ComValidacaoInvalida_LancaValidacaoException()
+        {
+            // Arrange
+            var comando = new LoginUsuarioComando
+            {
+                Email = "email_invalido",
+                Senha = ""
+            };
+
+            var validationFailures = new List<ValidationFailure>
+            {
+                new ValidationFailure("Email", "Email inválido"),
+                new ValidationFailure("Senha", "Senha é obrigatória")
+            };
+
+            _validatorMock.Setup(x => x.ValidateAsync(comando, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ValidationResult(validationFailures));
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ValidacaoException>(
+                () => _handler.Handle(comando, CancellationToken.None));
+
+            Assert.Contains("Email", exception.Erros.Keys);
+            Assert.Contains("Senha", exception.Erros.Keys);
         }
 
         [Fact]
@@ -140,4 +180,3 @@ namespace APIProject.UnitTests.Application.Usuarios.Comandos.LoginUsuario
         }
     }
 }
-

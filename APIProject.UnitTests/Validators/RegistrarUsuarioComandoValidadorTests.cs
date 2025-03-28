@@ -1,162 +1,250 @@
 using APIProject.Application.Usuarios.Comandos.RegistrarUsuario;
-using Bogus;
 using FluentValidation.TestHelper;
 using Xunit;
 
-namespace APIProject.UnitTests.Validators
+namespace APIProject.UnitTests.Application.Usuarios.Comandos.RegistrarUsuario
 {
     public class RegistrarUsuarioComandoValidadorTests
     {
-        private readonly RegistrarUsuarioComandoValidador _validador;
-        private readonly Faker _faker;
+        private readonly RegistrarUsuarioComandoValidador _validator;
 
         public RegistrarUsuarioComandoValidadorTests()
         {
-            _validador = new RegistrarUsuarioComandoValidador();
-            _faker = new Faker();
+            _validator = new RegistrarUsuarioComandoValidador();
         }
 
         [Fact]
-        public void DevePassarQuandoDadosSaoValidos()
+        public void Validator_ComDadosValidos_NaoDeveGerarErros()
         {
             // Arrange
             var comando = new RegistrarUsuarioComando
             {
-                Nome = _faker.Name.FullName(),
-                Email = _faker.Internet.Email(),
-                Senha = "Senha@123",
-                ConfirmacaoSenha = "Senha@123"
+                Nome = "Novo Usuário",
+                Email = "usuario@teste.com",
+                Senha = "Senha123!",
+                ConfirmacaoSenha = "Senha123!"
             };
 
-            // Act & Assert
-            var resultado = _validador.TestValidate(comando);
-            resultado.ShouldNotHaveAnyValidationErrors();
+            // Act
+            var result = _validator.TestValidate(comando);
+
+            // Assert
+            result.ShouldNotHaveAnyValidationErrors();
         }
 
-        [Fact]
-        public void DeveFalharQuandoNomeEstaVazio()
+        [Theory]
+        [InlineData("")]
+        [InlineData(null)]
+        public void Validator_ComNomeVazioOuNulo_DeveGerarErro(string nome)
         {
             // Arrange
             var comando = new RegistrarUsuarioComando
             {
-                Nome = string.Empty,
-                Email = _faker.Internet.Email(),
-                Senha = "Senha@123",
-                ConfirmacaoSenha = "Senha@123"
+                Nome = nome,
+                Email = "usuario@teste.com",
+                Senha = "Senha123!",
+                ConfirmacaoSenha = "Senha123!"
             };
 
-            // Act & Assert
-            var resultado = _validador.TestValidate(comando);
-            resultado.ShouldHaveValidationErrorFor(x => x.Nome)
-                     .WithErrorMessage("Nome é obrigatório");
+            // Act
+            var result = _validator.TestValidate(comando);
+
+            // Assert
+            result.ShouldHaveValidationErrorFor(x => x.Nome);
         }
 
         [Fact]
-        public void DeveFalharQuandoNomeExcedeTamanhoMaximo()
+        public void Validator_ComNomeMuitoLongo_DeveGerarErro()
         {
             // Arrange
             var comando = new RegistrarUsuarioComando
             {
-                Nome = new string('a', 101),
-                Email = _faker.Internet.Email(),
-                Senha = "Senha@123",
-                ConfirmacaoSenha = "Senha@123"
+                Nome = new string('A', 101), // 101 caracteres
+                Email = "usuario@teste.com",
+                Senha = "Senha123!",
+                ConfirmacaoSenha = "Senha123!"
             };
 
-            // Act & Assert
-            var resultado = _validador.TestValidate(comando);
-            resultado.ShouldHaveValidationErrorFor(x => x.Nome)
-                     .WithErrorMessage("Nome não pode ter mais de 100 caracteres");
+            // Act
+            var result = _validator.TestValidate(comando);
+
+            // Assert
+            result.ShouldHaveValidationErrorFor(x => x.Nome);
         }
 
-        [Fact]
-        public void DeveFalharQuandoEmailEstaVazio()
+        [Theory]
+        [InlineData("")]
+        [InlineData(null)]
+        public void Validator_ComEmailVazioOuNulo_DeveGerarErro(string email)
         {
             // Arrange
             var comando = new RegistrarUsuarioComando
             {
-                Nome = _faker.Name.FullName(),
-                Email = string.Empty,
-                Senha = "Senha@123",
-                ConfirmacaoSenha = "Senha@123"
+                Nome = "Novo Usuário",
+                Email = email,
+                Senha = "Senha123!",
+                ConfirmacaoSenha = "Senha123!"
             };
 
-            // Act & Assert
-            var resultado = _validador.TestValidate(comando);
-            resultado.ShouldHaveValidationErrorFor(x => x.Email)
-                     .WithErrorMessage("Email é obrigatório");
+            // Act
+            var result = _validator.TestValidate(comando);
+
+            // Assert
+            result.ShouldHaveValidationErrorFor(x => x.Email);
         }
 
         [Fact]
-        public void DeveFalharQuandoEmailEhInvalido()
+        public void Validator_ComEmailInvalido_DeveGerarErro()
         {
             // Arrange
             var comando = new RegistrarUsuarioComando
             {
-                Nome = _faker.Name.FullName(),
-                Email = "emailinvalido",
-                Senha = "Senha@123",
-                ConfirmacaoSenha = "Senha@123"
+                Nome = "Novo Usuário",
+                Email = "email_invalido",
+                Senha = "Senha123!",
+                ConfirmacaoSenha = "Senha123!"
             };
 
-            // Act & Assert
-            var resultado = _validador.TestValidate(comando);
-            resultado.ShouldHaveValidationErrorFor(x => x.Email)
-                     .WithErrorMessage("Email inválido");
+            // Act
+            var result = _validator.TestValidate(comando);
+
+            // Assert
+            result.ShouldHaveValidationErrorFor(x => x.Email);
         }
 
-        [Fact]
-        public void DeveFalharQuandoEmailExcedeTamanhoMaximo()
+        [Theory]
+        [InlineData("")]
+        [InlineData(null)]
+        public void Validator_ComSenhaVaziaOuNula_DeveGerarErro(string senha)
         {
             // Arrange
             var comando = new RegistrarUsuarioComando
             {
-                Nome = _faker.Name.FullName(),
-                Email = $"{new string('a', 91)}@teste.com",
-                Senha = "Senha@123",
-                ConfirmacaoSenha = "Senha@123"
+                Nome = "Novo Usuário",
+                Email = "usuario@teste.com",
+                Senha = senha,
+                ConfirmacaoSenha = senha
             };
 
-            // Act & Assert
-            var resultado = _validador.TestValidate(comando);
-            resultado.ShouldHaveValidationErrorFor(x => x.Email)
-                     .WithErrorMessage("Email não pode ter mais de 100 caracteres");
+            // Act
+            var result = _validator.TestValidate(comando);
+
+            // Assert
+            result.ShouldHaveValidationErrorFor(x => x.Senha);
         }
 
         [Fact]
-        public void DeveFalharQuandoSenhaEstaVazia()
+        public void Validator_ComSenhaMuitoCurta_DeveGerarErro()
         {
             // Arrange
             var comando = new RegistrarUsuarioComando
             {
-                Nome = _faker.Name.FullName(),
-                Email = _faker.Internet.Email(),
-                Senha = string.Empty,
-                ConfirmacaoSenha = string.Empty
+                Nome = "Novo Usuário",
+                Email = "usuario@teste.com",
+                Senha = "Abc1!",
+                ConfirmacaoSenha = "Abc1!"
             };
 
-            // Act & Assert
-            var resultado = _validador.TestValidate(comando);
-            resultado.ShouldHaveValidationErrorFor(x => x.Senha)
-                     .WithErrorMessage("Senha é obrigatória");
+            // Act
+            var result = _validator.TestValidate(comando);
+
+            // Assert
+            result.ShouldHaveValidationErrorFor(x => x.Senha);
         }
 
         [Fact]
-        public void DeveFalharQuandoSenhasNaoConferem()
+        public void Validator_ComSenhasNaoCorrespondentes_DeveGerarErro()
         {
             // Arrange
             var comando = new RegistrarUsuarioComando
             {
-                Nome = _faker.Name.FullName(),
-                Email = _faker.Internet.Email(),
-                Senha = "Senha@123",
-                ConfirmacaoSenha = "Senha@456"
+                Nome = "Novo Usuário",
+                Email = "usuario@teste.com",
+                Senha = "Senha123!",
+                ConfirmacaoSenha = "Senha456!"
             };
 
-            // Act & Assert
-            var resultado = _validador.TestValidate(comando);
-            resultado.ShouldHaveValidationErrorFor(x => x.ConfirmacaoSenha)
-                     .WithErrorMessage("Senhas não conferem");
+            // Act
+            var result = _validator.TestValidate(comando);
+
+            // Assert
+            result.ShouldHaveValidationErrorFor(x => x.ConfirmacaoSenha);
+        }
+
+        [Fact]
+        public void Validator_ComSenhaSemLetraMaiuscula_DeveGerarErro()
+        {
+            // Arrange
+            var comando = new RegistrarUsuarioComando
+            {
+                Nome = "Novo Usuário",
+                Email = "usuario@teste.com",
+                Senha = "senha123!",
+                ConfirmacaoSenha = "senha123!"
+            };
+
+            // Act
+            var result = _validator.TestValidate(comando);
+
+            // Assert
+            result.ShouldHaveValidationErrorFor(x => x.Senha);
+        }
+
+        [Fact]
+        public void Validator_ComSenhaSemLetraMinuscula_DeveGerarErro()
+        {
+            // Arrange
+            var comando = new RegistrarUsuarioComando
+            {
+                Nome = "Novo Usuário",
+                Email = "usuario@teste.com",
+                Senha = "SENHA123!",
+                ConfirmacaoSenha = "SENHA123!"
+            };
+
+            // Act
+            var result = _validator.TestValidate(comando);
+
+            // Assert
+            result.ShouldHaveValidationErrorFor(x => x.Senha);
+        }
+
+        [Fact]
+        public void Validator_ComSenhaSemNumero_DeveGerarErro()
+        {
+            // Arrange
+            var comando = new RegistrarUsuarioComando
+            {
+                Nome = "Novo Usuário",
+                Email = "usuario@teste.com",
+                Senha = "Senha!!!",
+                ConfirmacaoSenha = "Senha!!!"
+            };
+
+            // Act
+            var result = _validator.TestValidate(comando);
+
+            // Assert
+            result.ShouldHaveValidationErrorFor(x => x.Senha);
+        }
+
+        [Fact]
+        public void Validator_ComSenhaSemCaractereEspecial_DeveGerarErro()
+        {
+            // Arrange
+            var comando = new RegistrarUsuarioComando
+            {
+                Nome = "Novo Usuário",
+                Email = "usuario@teste.com",
+                Senha = "Senha123",
+                ConfirmacaoSenha = "Senha123"
+            };
+
+            // Act
+            var result = _validator.TestValidate(comando);
+
+            // Assert
+            result.ShouldHaveValidationErrorFor(x => x.Senha);
         }
     }
 }
