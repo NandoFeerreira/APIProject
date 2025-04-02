@@ -11,5 +11,7 @@ namespace APIProject.API.Controllers
         {
             return Ok("Controller de teste funcionando!");
         }
+
+
     }
 }

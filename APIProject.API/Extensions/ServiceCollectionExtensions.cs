@@ -1,8 +1,14 @@
 using APIProject.Application.Extensions;
 using APIProject.Application.Usuarios.Comandos.LoginUsuario;
 using APIProject.Application.Usuarios.Comandos.RegistrarUsuario;
+using APIProject.Infrastructure.Configuracoes;
 using FluentValidation;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Text;
+using System.Text.Json;
 
 namespace APIProject.API.Extensions
 {
@@ -12,56 +18,94 @@ namespace APIProject.API.Extensions
         {
             // Adiciona serviços da camada de aplicação
             services.AddApplicationLayer();
-           
+
             services.AddScoped<IValidator<LoginUsuarioComando>, LoginUsuarioComandoValidador>();
             services.AddScoped<IValidator<RegistrarUsuarioComando>, RegistrarUsuarioComandoValidador>();
 
+            // Configuração JWT clara e explícita
+            var jwtConfiguracoes = configuration.GetSection("JwtConfiguracoes");
 
-            return services;
-        }
+            services.Configure<JwtConfiguracoes>(jwtConfiguracoes);
 
-        public static IServiceCollection AddOpenApi(this IServiceCollection services)
-        {
-            services.AddEndpointsApiExplorer();
-            services.AddSwaggerGen(c =>
+            var jwtConfig = jwtConfiguracoes.Get<JwtConfiguracoes>();
+
+            if (string.IsNullOrEmpty(jwtConfig!.Chave) ||
+                string.IsNullOrEmpty(jwtConfig.Emissor) ||
+                string.IsNullOrEmpty(jwtConfig.Audiencia))
             {
-                c.SwaggerDoc("v1", new OpenApiInfo
-                {
-                    Title = "API Project",
-                    Version = "v1",
-                    Description = "API para o projeto APIProject"
-                });
+                throw new InvalidOperationException("Configurações JWT incompletas ou inválidas");
+            }
 
-                // Configuração para autenticação JWT no Swagger
-                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    Description = "JWT Authorization header using the Bearer scheme",
-                    Name = "Authorization",
-                    In = ParameterLocation.Header,
-                    Type = SecuritySchemeType.ApiKey,
-                    Scheme = "Bearer"
-                });
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = configuration["JwtConfiguracoes:Emissor"],
+                    ValidAudience = configuration["JwtConfiguracoes:Audiencia"],
+                    IssuerSigningKey = new SymmetricSecurityKey(
+                        Encoding.UTF8.GetBytes(configuration["JwtConfiguracoes:Chave"]!))
+                };
 
-                c.AddSecurityRequirement(new OpenApiSecurityRequirement
+                options.Events = new JwtBearerEvents
                 {
+                    OnAuthenticationFailed = context =>
                     {
-                        new OpenApiSecurityScheme
+                        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                        logger.LogError($"Autenticação JWT falhou: {context.Exception.Message}");
+                        return Task.CompletedTask;
+                    },
+                    OnMessageReceived = context =>
+                    {
+                        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+
+                        // Log do header Authorization
+                        var authHeader = context.HttpContext.Request.Headers["Authorization"].ToString();
+                        logger.LogInformation($"Header Authorization: {authHeader}");
+
+                        // Se o token for nulo mas o header existir, extraímos manualmente
+                        if (string.IsNullOrEmpty(context.Token) && !string.IsNullOrEmpty(authHeader))
                         {
-                            Reference = new OpenApiReference
+                            if (authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
                             {
-                                Type = ReferenceType.SecurityScheme,
-                                Id = "Bearer"
+                                var token = authHeader.Substring("Bearer ".Length).Trim();
+                                context.Token = token;
+                                logger.LogInformation($"Token extraído manualmente: {token.Substring(0, Math.Min(10, token.Length))}...");
                             }
-                         },
-                        Array.Empty<string>()
-                     }
-                 });
+                            else
+                            {
+                                logger.LogWarning("Header Authorization não começa com 'Bearer '");
+                            }
+                        }
+
+                        return Task.CompletedTask;
+                    },
+                    OnTokenValidated = context =>
+                    {
+                        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                        logger.LogInformation("Token JWT validado com sucesso");
+                        return Task.CompletedTask;
+                    }
+                };
+            });
+
+            // Configuração de autorização
+            services.AddAuthorization(options =>
+            {
+                options.DefaultPolicy = new AuthorizationPolicyBuilder()
+                    .RequireAuthenticatedUser()
+                    .Build();
             });
 
             return services;
         }
-
-
-
     }
 }

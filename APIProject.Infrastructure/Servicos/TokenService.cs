@@ -8,45 +8,41 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace APIProject.Infrastructure.Servicos
+public class TokenService : ITokenService
 {
-    public class TokenService : ITokenService
+    private readonly JwtConfiguracoes _jwtConfiguracoes;
+
+    public TokenService(IOptions<JwtConfiguracoes> jwtConfiguracoes)
     {
-        private readonly JwtConfiguracoes _jwtConfiguracoes;
+        _jwtConfiguracoes = jwtConfiguracoes.Value;
+    }
 
-        public TokenService(IOptions<JwtConfiguracoes> jwtConfiguracoes)
+    public TokenDto GerarToken(Usuario usuario)
+    {
+        var claims = new List<Claim>
         {
-            _jwtConfiguracoes = jwtConfiguracoes.Value;
-        }
+            new Claim(JwtRegisteredClaimNames.Sub, usuario.Id.ToString()),
+            new Claim(JwtRegisteredClaimNames.Email, usuario.Email),
+            new Claim(JwtRegisteredClaimNames.Name, usuario.Nome),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+        };
 
-        public TokenDto GerarToken(Usuario usuario)
+        var chave = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtConfiguracoes.Chave));
+        var credenciais = new SigningCredentials(chave, SecurityAlgorithms.HmacSha256);
+        var expiracao = DateTime.UtcNow.AddMinutes(_jwtConfiguracoes.ExpiracaoMinutos);
+
+        var token = new JwtSecurityToken(
+            issuer: _jwtConfiguracoes.Emissor,
+            audience: _jwtConfiguracoes.Audiencia,
+            claims: claims,
+            expires: expiracao,
+            signingCredentials: credenciais
+        );
+
+        return new TokenDto
         {
-            var claims = new List<Claim>
-            {
-                new Claim(JwtRegisteredClaimNames.Sub, usuario.Id.ToString()),
-                new Claim(JwtRegisteredClaimNames.Email, usuario.Email),
-                new Claim(JwtRegisteredClaimNames.Name, usuario.Nome),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            };           
-            
-
-            var chave = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtConfiguracoes.Chave));
-            var credenciais = new SigningCredentials(chave, SecurityAlgorithms.HmacSha256);
-            var expiracao = DateTime.UtcNow.AddMinutes(_jwtConfiguracoes.ExpiracaoMinutos);
-
-            var token = new JwtSecurityToken(
-                issuer: _jwtConfiguracoes.Emissor,
-                audience: _jwtConfiguracoes.Audiencia,
-                claims: claims,
-                expires: expiracao,
-                signingCredentials: credenciais
-            );
-
-            return new TokenDto
-            {
-                Token = new JwtSecurityTokenHandler().WriteToken(token),
-                Expiracao = expiracao
-            };
-        }
+            Token = new JwtSecurityTokenHandler().WriteToken(token),
+            Expiracao = expiracao
+        };
     }
 }

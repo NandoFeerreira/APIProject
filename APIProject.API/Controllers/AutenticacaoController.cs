@@ -4,6 +4,7 @@ using APIProject.Application.Usuarios.Comandos.RegistrarUsuario;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace APIProject.API.Controllers
 {
@@ -47,5 +48,16 @@ namespace APIProject.API.Controllers
             var usuario = await _mediator.Send(comando);
             return Ok(usuario);
         }
+
+        [HttpGet("verificar-token")]
+        [Authorize] 
+        public ActionResult<string> VerificarToken()
+        {           
+            var userId = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+            var userName = User.FindFirst(JwtRegisteredClaimNames.Name)?.Value;
+
+            return Ok(new { mensagem = "Token válido", usuario = userName + userId});
+        }
     }
+    
 }
