@@ -10,11 +10,22 @@ namespace APIProject.Infrastructure.Persistencia
         {
         }
 
-        public DbSet<Usuario> Usuarios { get; set; }      
+        public DbSet<Usuario> Usuarios { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Aplicar todas as configurações de entidade do assembly
+            
+            modelBuilder.Entity<Usuario>()
+                .HasMany(u => u.RefreshTokens)
+                .WithOne(rt => rt.Usuario)
+                .HasForeignKey(rt => rt.UsuarioId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<RefreshToken>()
+                .HasKey(rt => rt.Id);
+
+           
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
             base.OnModelCreating(modelBuilder);

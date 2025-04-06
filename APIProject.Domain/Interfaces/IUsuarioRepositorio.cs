@@ -18,5 +18,8 @@ namespace APIProject.Domain.Interfaces
         Task AdicionarAsync(Usuario usuario);
         void Atualizar(Usuario usuario);
         void Remover(Usuario usuario);
+       
+        Task<Usuario> ObterPorIdComRefreshTokensAsync(Guid id);
+
     }
 }

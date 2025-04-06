@@ -101,6 +101,13 @@ namespace APIProject.Infrastructure.Persistencia.Repositorios
             // _context.Entry(usuario).State = EntityState.Modified;
         }
 
+        public async Task<Usuario> ObterPorIdComRefreshTokensAsync(Guid id)
+        {
+            return await _usuarios
+                .Include(u => u.RefreshTokens)
+                .FirstOrDefaultAsync(u => u.Id == id);
+        }
+
         public void Remover(Usuario usuario)
         {
             _usuarios.Remove(usuario);

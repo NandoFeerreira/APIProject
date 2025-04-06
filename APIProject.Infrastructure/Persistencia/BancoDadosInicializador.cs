@@ -38,8 +38,7 @@ namespace APIProject.Infrastructure.Persistencia
                     await context.Database.EnsureCreatedAsync();
                     logger.LogInformation("Banco de dados verificado com sucesso.");
                 }
-
-                // Opcionalmente, adicionar dados iniciais (seed) aqui, se necessário
+               
             }
             catch (Exception ex)
             {
@@ -67,8 +66,7 @@ namespace APIProject.Infrastructure.Persistencia
                 if (existe)
                 {
                     logger.LogInformation("Conexão com o banco de dados estabelecida com sucesso.");
-
-                    // Verifica se há migrações pendentes, apenas para informar
+                   
                     bool temMigracoesPendentes = (await context.Database.GetPendingMigrationsAsync()).Any();
 
                     if (temMigracoesPendentes)

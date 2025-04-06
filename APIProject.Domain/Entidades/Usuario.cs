@@ -11,7 +11,9 @@ namespace APIProject.Domain.Entidades
         public string Senha { get; set; }
         public DateTime DataCriacao { get; set; }
         public DateTime? UltimoLogin { get; set; }
-        public bool Ativo { get; set; }       
+        public bool Ativo { get; set; }
+       
+        public virtual ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 
         protected Usuario() { }
 
@@ -28,6 +30,17 @@ namespace APIProject.Domain.Entidades
             Senha = senhaCriptografada;
             DataCriacao = DateTime.UtcNow;
             Ativo = true;
+        }
+
+        // Método para adicionar um novo refresh token ao usuário
+        public void AdicionarRefreshToken(string token, DateTime dataExpiracao)
+        {
+            RefreshTokens.Add(new RefreshToken
+            {
+                Token = token,
+                DataExpiracao = dataExpiracao,
+                UsuarioId = Id
+            });
         }
     }
 }

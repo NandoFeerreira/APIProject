@@ -66,12 +66,17 @@ namespace APIProject.Application.Usuarios.Comandos.LoginUsuario
                 throw new OperacaoNaoAutorizadaException("Usuário ou senha inválidos");
             }
 
-            // Registrar o login
+            var tokenDto = _tokenService.GerarToken(usuario);
+           
+            usuario.AdicionarRefreshToken(
+                tokenDto.RefreshToken,
+                DateTime.UtcNow.AddDays(1)
+            );
+
             _usuarioServico.RegistrarLogin(usuario);
             await _unitOfWork.CommitAsync();
 
-            // Gerar o token
-            return _tokenService.GerarToken(usuario);
+            return tokenDto;
         }
     }
 }

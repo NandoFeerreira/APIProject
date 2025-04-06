@@ -1,10 +1,11 @@
 using APIProject.Application.DTOs;
 using APIProject.Application.Usuarios.Comandos.LoginUsuario;
+using APIProject.Application.Usuarios.Comandos.RefreshToken;
 using APIProject.Application.Usuarios.Comandos.RegistrarUsuario;
+using APIProject.Domain.Excecoes;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.IdentityModel.Tokens.Jwt;
 
 namespace APIProject.API.Controllers
 {
@@ -49,15 +50,26 @@ namespace APIProject.API.Controllers
             return Ok(usuario);
         }
 
-        [HttpGet("verificar-token")]
-        [Authorize] 
-        public ActionResult<string> VerificarToken()
-        {           
-            var userId = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
-            var userName = User.FindFirst(JwtRegisteredClaimNames.Name)?.Value;
-
-            return Ok(new { mensagem = "Token válido", usuario = userName + userId});
+        [HttpPost("refresh-token")]
+        [AllowAnonymous]
+        public async Task<ActionResult<TokenDto>> RefreshToken([FromBody] RefreshTokenComando comando)
+        {
+            try
+            {
+                var token = await _mediator.Send(comando);
+                return Ok(token);
+            }
+            catch (OperacaoNaoAutorizadaException ex)
+            {
+                return Unauthorized(new { mensagem = ex.Message });
+            }
+            catch (ValidacaoException ex)
+            {
+                return BadRequest(new { erros = ex.Erros });
+            }
         }
+
+
     }
     
 }

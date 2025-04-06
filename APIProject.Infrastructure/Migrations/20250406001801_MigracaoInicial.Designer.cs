@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace APIProject.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250328000050_MigracaoInicial")]
+    [Migration("20250406001801_MigracaoInicial")]
     partial class MigracaoInicial
     {
         /// <inheritdoc />
@@ -24,6 +24,38 @@ namespace APIProject.Infrastructure.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("APIProject.Domain.Entidades.RefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("DataCriacao")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("DataExpiracao")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("Invalidado")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("Utilizado")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("RefreshTokens");
+                });
 
             modelBuilder.Entity("APIProject.Domain.Entidades.Usuario", b =>
                 {
@@ -60,6 +92,22 @@ namespace APIProject.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Usuarios");
+                });
+
+            modelBuilder.Entity("APIProject.Domain.Entidades.RefreshToken", b =>
+                {
+                    b.HasOne("APIProject.Domain.Entidades.Usuario", "Usuario")
+                        .WithMany("RefreshTokens")
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("APIProject.Domain.Entidades.Usuario", b =>
+                {
+                    b.Navigation("RefreshTokens");
                 });
 #pragma warning restore 612, 618
         }
