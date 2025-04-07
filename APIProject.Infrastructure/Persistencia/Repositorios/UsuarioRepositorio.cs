@@ -8,16 +8,9 @@ using System.Threading.Tasks;
 
 namespace APIProject.Infrastructure.Persistencia.Repositorios
 {
-    public class UsuarioRepositorio : IUsuarioRepositorio
-    {
-        private readonly ApplicationDbContext _context;
-        private readonly DbSet<Usuario> _usuarios;
-
-        public UsuarioRepositorio(ApplicationDbContext context)
-        {
-            _context = context ?? throw new ArgumentNullException(nameof(context));
-            _usuarios = context.Usuarios;
-        }
+    public class UsuarioRepositorio(ApplicationDbContext context) : IUsuarioRepositorio
+    {        
+        private readonly DbSet<Usuario> _usuarios = context.Usuarios;      
 
         public async Task<Usuario?> ObterPorIdAsync(Guid id)
         {
@@ -51,10 +44,9 @@ namespace APIProject.Infrastructure.Persistencia.Repositorios
             if (string.IsNullOrWhiteSpace(termo))
                 return await ObterTodosAsync();
 
-            termo = termo.ToLower();
             return await _usuarios
-                .Where(u => u.Nome.ToLower().Contains(termo) ||
-                           u.Email.ToLower().Contains(termo))
+                .Where(u => u.Nome != null && u.Nome.Contains(termo, StringComparison.OrdinalIgnoreCase) ||
+                           u.Email != null && u.Email.Contains(termo, StringComparison.OrdinalIgnoreCase))
                 .ToListAsync();
         }
 
@@ -71,14 +63,13 @@ namespace APIProject.Infrastructure.Persistencia.Repositorios
                 query = query.Where(u => u.Ativo == somenteAtivos.Value);
             }
 
-            if (!string.IsNullOrEmpty(termoBusca))
+            if (!string.IsNullOrWhiteSpace(termoBusca))
             {
                 termoBusca = termoBusca.ToLower();
                 query = query.Where(u =>
-                    u.Nome.ToLower().Contains(termoBusca) ||
-                    u.Email.ToLower().Contains(termoBusca));
+                    EF.Functions.Like(u.Nome!.ToLower(), $"%{termoBusca}%") ||
+                    EF.Functions.Like(u.Email!.ToLower(), $"%{termoBusca}%"));
             }
-
             int total = await query.CountAsync();
 
             var usuarios = await query
@@ -97,13 +88,10 @@ namespace APIProject.Infrastructure.Persistencia.Repositorios
 
         public void Atualizar(Usuario usuario)
         {
-            // O Entity Framework Core rastreará automaticamente as alterações
-            // Não é necessário chamar _context.Update ou definir o estado da entidade
-            // Apenas atualizar a entidade rastreada já é suficiente
-            // _context.Entry(usuario).State = EntityState.Modified;
+            
         }
 
-        public async Task<Usuario> ObterPorIdComRefreshTokensAsync(Guid id)
+        public async Task<Usuario?> ObterPorIdComRefreshTokensAsync(Guid id)
         {
             return await _usuarios
                 .Include(u => u.RefreshTokens)

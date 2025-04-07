@@ -19,7 +19,7 @@ namespace APIProject.Domain.Interfaces
         void Atualizar(Usuario usuario);
         void Remover(Usuario usuario);
        
-        Task<Usuario> ObterPorIdComRefreshTokensAsync(Guid id);
+        Task<Usuario?> ObterPorIdComRefreshTokensAsync(Guid id);
 
     }
 }

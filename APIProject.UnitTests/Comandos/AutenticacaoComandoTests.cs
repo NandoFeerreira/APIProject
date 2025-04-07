@@ -69,10 +69,12 @@ namespace APIProject.UnitTests.Comandos
                 RegistroValidatorMock.Object);
         }
 
-        public Usuario CriarUsuarioTeste(string nome, string email, string senhaHash, bool ativo = true)
+        public static Usuario CriarUsuarioTeste(string nome, string email, string senhaHash, bool ativo = true)
         {
-            var usuario = new Usuario(nome, email, senhaHash);
-            usuario.Ativo = ativo;
+            var usuario = new Usuario(nome, email, senhaHash)
+            {
+                Ativo = ativo
+            };
             return usuario;
         }
     }
@@ -115,11 +117,11 @@ namespace APIProject.UnitTests.Comandos
             var comando = new LoginUsuarioComando { Email = "teste@teste.com", Senha = "senha123" };
             var handler = _fixture.CreateLoginHandler();
 
-            var usuario = _fixture.CriarUsuarioTeste("Teste", comando.Email, "senha_hash");
+            var usuario = AutenticacaoFixture.CriarUsuarioTeste("Teste", comando.Email, "senha_hash");
 
             _fixture.UsuarioRepositorioMock.Setup(x => x.ObterPorEmailAsync(comando.Email))
                 .ReturnsAsync(usuario);
-            _fixture.HashServiceMock.Setup(x => x.VerificarHash(comando.Senha, usuario.Senha))
+            _fixture.HashServiceMock.Setup(x => x.VerificarHash(comando.Senha, usuario.Senha!))
                 .Returns(true);
             _fixture.TokenServiceMock.Setup(x => x.GerarToken(usuario))
                 .Returns(new TokenDto { Token = "token_gerado" });
@@ -142,8 +144,8 @@ namespace APIProject.UnitTests.Comandos
 
             var validationFailures = new List<ValidationFailure>
             {
-                new ValidationFailure("Email", "Email inválido"),
-                new ValidationFailure("Senha", "Senha é obrigatória")
+                new("Email", "Email inválido"),
+                new("Senha", "Senha é obrigatória")
             };
 
             _fixture.LoginValidatorMock.Setup(v => v.ValidateAsync(comando, It.IsAny<CancellationToken>()))
@@ -165,7 +167,7 @@ namespace APIProject.UnitTests.Comandos
             var handler = _fixture.CreateLoginHandler();
 
             _fixture.UsuarioRepositorioMock.Setup(x => x.ObterPorEmailAsync(comando.Email))
-                .ReturnsAsync((Usuario)null);
+                .ReturnsAsync((Usuario?)null);
 
             // Act & Assert
             var exception = await Assert.ThrowsAsync<OperacaoNaoAutorizadaException>(
@@ -180,7 +182,7 @@ namespace APIProject.UnitTests.Comandos
             var comando = new LoginUsuarioComando { Email = "inativo@teste.com", Senha = "senha123" };
             var handler = _fixture.CreateLoginHandler();
 
-            var usuario = _fixture.CriarUsuarioTeste("Inativo", comando.Email, "senha_hash", false);
+            var usuario = AutenticacaoFixture.CriarUsuarioTeste("Inativo", comando.Email, "senha_hash", false);
 
             _fixture.UsuarioRepositorioMock.Setup(x => x.ObterPorEmailAsync(comando.Email))
                 .ReturnsAsync(usuario);
@@ -198,11 +200,11 @@ namespace APIProject.UnitTests.Comandos
             var comando = new LoginUsuarioComando { Email = "teste@teste.com", Senha = "senha_errada" };
             var handler = _fixture.CreateLoginHandler();
 
-            var usuario = _fixture.CriarUsuarioTeste("Teste", comando.Email, "senha_hash");
+            var usuario = AutenticacaoFixture.CriarUsuarioTeste("Teste", comando.Email, "senha_hash");
 
             _fixture.UsuarioRepositorioMock.Setup(x => x.ObterPorEmailAsync(comando.Email))
                 .ReturnsAsync(usuario);
-            _fixture.HashServiceMock.Setup(x => x.VerificarHash(comando.Senha, usuario.Senha))
+            _fixture.HashServiceMock.Setup(x => x.VerificarHash(comando.Senha, usuario.Senha!))
                 .Returns(false); // Senha inválida
 
             // Act & Assert
@@ -263,10 +265,10 @@ namespace APIProject.UnitTests.Comandos
 
             var validationFailures = new List<ValidationFailure>
             {
-                new ValidationFailure("Nome", "Nome é obrigatório"),
-                new ValidationFailure("Email", "Email inválido"),
-                new ValidationFailure("Senha", "Senha deve ter pelo menos 6 caracteres"),
-                new ValidationFailure("ConfirmacaoSenha", "Senhas não conferem")
+                new("Nome", "Nome é obrigatório"),
+                new("Email", "Email inválido"),
+                new("Senha", "Senha deve ter pelo menos 6 caracteres"),
+                new("ConfirmacaoSenha", "Senhas não conferem")
             };
 
             _fixture.RegistroValidatorMock.Setup(v => v.ValidateAsync(comando, It.IsAny<CancellationToken>()))

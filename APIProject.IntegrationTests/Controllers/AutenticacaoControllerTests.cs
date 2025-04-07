@@ -23,9 +23,9 @@ namespace APIProject.IntegrationTests.Controllers
                 _client = _factory.CreateClient();
                 _factory.SeedTestData();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw;
+                    throw;
             }
         }
 
@@ -52,7 +52,7 @@ namespace APIProject.IntegrationTests.Controllers
         public async Task Registrar_ComDadosValidos_RetornaUsuarioCriado()
         {
             // Gerar email único para evitar conflitos
-            string emailUnico = $"novo{Guid.NewGuid().ToString().Substring(0, 8)}@teste.com";
+            string emailUnico = $"novo{Guid.NewGuid().ToString()[..8]}@teste.com";
 
             // Arrange
             var registroDto = new RegistroUsuarioDto

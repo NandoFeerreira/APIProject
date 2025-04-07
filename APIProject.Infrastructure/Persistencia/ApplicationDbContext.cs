@@ -4,14 +4,10 @@ using System.Reflection;
 
 namespace APIProject.Infrastructure.Persistencia
 {
-    public class ApplicationDbContext : DbContext
+    public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
-        {
-        }
-
-        public DbSet<Usuario> Usuarios { get; set; }
-        public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public required DbSet<Usuario> Usuarios { get; set; }
+        public required DbSet<RefreshToken> RefreshTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
