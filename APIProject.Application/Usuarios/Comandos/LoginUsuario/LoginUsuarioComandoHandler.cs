@@ -66,8 +66,14 @@ namespace APIProject.Application.Usuarios.Comandos.LoginUsuario
                 throw new OperacaoNaoAutorizadaException("Usuário ou senha inválidos");
             }
 
+            // Invalidate all existing refresh tokens
+            foreach (var token in usuario.RefreshTokens.Where(rt => rt.EstaAtivo))
+            {
+                token.Invalidado = true;
+            }
+
             var tokenDto = _tokenService.GerarToken(usuario);
-           
+
             usuario.AdicionarRefreshToken(
                 tokenDto.RefreshToken,
                 DateTime.UtcNow.AddDays(1)
@@ -79,4 +85,5 @@ namespace APIProject.Application.Usuarios.Comandos.LoginUsuario
             return tokenDto;
         }
     }
+    
 }

@@ -107,8 +107,7 @@ public partial class Program
                 c.ConfigObject.AdditionalItems.Add("persistAuthorization", true);
                 c.ConfigObject.AdditionalItems.Add("tryItOutEnabled", true);
             });
-
-            // Mantém o middleware personalizado só em desenvolvimento
+          
             app.Use(async (context, next) =>
             {
                 if (context.Request.Method == "OPTIONS")
@@ -130,6 +129,7 @@ public partial class Program
         app.UseCors("Development");  // Use a política nomeada
                                      // app.UseHttpsRedirection(); // Descomentado em produção
         app.UseAuthentication();
+        app.UseExceptionMiddleware();
         app.UseAuthorization();
         app.MapControllers();
 

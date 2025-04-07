@@ -1,19 +1,13 @@
-using APIProject.Application.DTOs;
 using APIProject.Application.Extensions;
-using APIProject.Application.Usuarios.Comandos.Consulta;
 using APIProject.Application.Usuarios.Comandos.LoginUsuario;
-using APIProject.Application.Usuarios.Comandos.Logout;
 using APIProject.Application.Usuarios.Comandos.RefreshToken;
 using APIProject.Application.Usuarios.Comandos.RegistrarUsuario;
 using APIProject.Infrastructure.Configuracoes;
 using FluentValidation;
-using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
 using System.Text;
-using System.Text.Json;
 
 namespace APIProject.API.Extensions
 {

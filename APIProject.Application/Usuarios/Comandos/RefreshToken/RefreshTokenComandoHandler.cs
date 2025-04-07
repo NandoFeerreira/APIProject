@@ -73,9 +73,15 @@ namespace APIProject.Application.Usuarios.Comandos.RefreshToken
             {
                 throw new OperacaoNaoAutorizadaException("Refresh token inválido ou expirado");
             }
-           
+
             refreshToken.Utilizado = true;
-           
+
+            foreach (var token in usuario.RefreshTokens.Where(rt => rt.EstaAtivo && rt.Id != refreshToken.Id))
+            {
+                token.Invalidado = true;
+            }
+            
+
             var novoToken = _tokenService.GerarToken(usuario);
          
             usuario.AdicionarRefreshToken(

@@ -36,7 +36,9 @@ namespace APIProject.Infrastructure.Persistencia.Repositorios
 
         public async Task<Usuario?> ObterPorEmailAsync(string email)
         {
-            return await _usuarios.FirstOrDefaultAsync(u => u.Email == email);
+            return await _usuarios.
+                Include(u => u.RefreshTokens).
+                FirstOrDefaultAsync(u => u.Email == email);
         }
 
         public async Task<bool> EmailExisteAsync(string email)
