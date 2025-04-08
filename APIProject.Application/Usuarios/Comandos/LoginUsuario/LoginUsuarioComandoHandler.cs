@@ -33,8 +33,7 @@ namespace APIProject.Application.Usuarios.Comandos.LoginUsuario
         }
 
         public async Task<TokenDto> Handle(LoginUsuarioComando request, CancellationToken cancellationToken)
-        {
-            // Validar comando usando o validador existente
+        {            
             var validationResult = await _validator.ValidateAsync(request, cancellationToken);
             if (!validationResult.IsValid)
             {
@@ -61,7 +60,7 @@ namespace APIProject.Application.Usuarios.Comandos.LoginUsuario
             }
 
             // Verificar a senha
-            if (!_hashService.VerificarHash(request.Senha, usuario.Senha))
+            if (!_hashService.VerificarHash(request.Senha, usuario.Senha!))
             {
                 throw new OperacaoNaoAutorizadaException("Usuário ou senha inválidos");
             }

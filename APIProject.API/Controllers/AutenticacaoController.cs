@@ -1,11 +1,13 @@
 using APIProject.Application.DTOs;
 using APIProject.Application.Usuarios.Comandos.LoginUsuario;
+using APIProject.Application.Usuarios.Comandos.Logout;
 using APIProject.Application.Usuarios.Comandos.RefreshToken;
 using APIProject.Application.Usuarios.Comandos.RegistrarUsuario;
 using APIProject.Domain.Excecoes;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace APIProject.API.Controllers
 {
@@ -67,6 +69,25 @@ namespace APIProject.API.Controllers
             {
                 return BadRequest(new { erros = ex.Erros });
             }
+        }
+
+        [HttpPost("logout")]
+        [Authorize]
+        public async Task<IActionResult> Logout()
+        {
+            var usuarioId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(usuarioId) || !Guid.TryParse(usuarioId, out var guidUsuarioId))
+            {
+                return Unauthorized(new { mensagem = "Usuário não autorizado" });
+            }
+
+            var comando = new LogoutUsuarioComando
+            {
+                UsuarioId = guidUsuarioId
+            };
+
+            await _mediator.Send(comando);
+            return NoContent();
         }
 
 

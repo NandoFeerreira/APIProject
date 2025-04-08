@@ -1,5 +1,7 @@
 using APIProject.Application.Interfaces;
 using APIProject.Domain.Interfaces;
+using APIProject.Domain.Interfaces.Servicos;
+using APIProject.Domain.Servicos;
 using APIProject.Infrastructure.Configuracoes;
 using APIProject.Infrastructure.Persistencia;
 using APIProject.Infrastructure.Persistencia.Repositorios;
@@ -55,10 +57,12 @@ namespace APIProject.Infrastructure.DependencyInjection
             // Registrar serviços de infraestrutura
             services.AddScoped<IHashService, HashService>();
             services.AddScoped<ITokenService, TokenService>();
+            services.AddScoped<IUsuarioServico, UsuarioServico>();
 
             // Registrar repositórios
-            services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<IUsuarioRepositorio, UsuarioRepositorio>();
+            services.AddScoped<ITokenInvalidadoRepositorio, TokenInvalidadoRepositorio>();
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
 
             // Adicionar serviços de domínio
             services.AddDomainServices();

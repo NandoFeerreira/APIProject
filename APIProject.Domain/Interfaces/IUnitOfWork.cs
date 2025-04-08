@@ -3,10 +3,9 @@ namespace APIProject.Domain.Interfaces
     public interface IUnitOfWork : IDisposable
     {
         IUsuarioRepositorio Usuarios { get; }
+        ITokenInvalidadoRepositorio TokensInvalidados { get; }
 
-        // Adicione outros repositórios conforme necessário
-        // IOutroRepositorio OutrosRepositorios { get; }
-
-        Task<int> CommitAsync();
+        Task<int> CommitAsync();        
+        
     }
 }

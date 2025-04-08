@@ -9,5 +9,10 @@ namespace APIProject.API.Extensions
         {
             return app.UseMiddleware<TratamentoExcecoesMiddleware>();
         }
+
+        public static IApplicationBuilder UseTokenValidacao(this IApplicationBuilder app)
+        {
+            return app.UseMiddleware<TokenValidacaoMiddleware>();
+        }
     }
 }

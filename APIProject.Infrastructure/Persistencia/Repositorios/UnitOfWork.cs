@@ -6,6 +6,7 @@ namespace APIProject.Infrastructure.Persistencia.Repositorios
     {
         private readonly ApplicationDbContext _context;
         private IUsuarioRepositorio _usuarioRepositorio;
+        private ITokenInvalidadoRepositorio _tokenInvalidadoRepositorio;
         private bool disposed = false;
 
         public UnitOfWork(ApplicationDbContext context)
@@ -14,6 +15,8 @@ namespace APIProject.Infrastructure.Persistencia.Repositorios
         }
 
         public IUsuarioRepositorio Usuarios => _usuarioRepositorio ??= new UsuarioRepositorio(_context);
+
+        public ITokenInvalidadoRepositorio TokensInvalidados => _tokenInvalidadoRepositorio ??= new TokenInvalidadoRepositorio(_context);
 
         public async Task<int> CommitAsync()
         {

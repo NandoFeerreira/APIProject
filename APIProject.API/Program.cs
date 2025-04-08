@@ -5,13 +5,11 @@ using APIProject.Infrastructure.Persistencia;
 using FluentValidation;
 using Microsoft.OpenApi.Models;
 
-namespace APIProject.API;
-      
+namespace APIProject.API;     
 
-// Necessário para testes de integração
+
 public partial class Program { }
 
-// Implementação principal da classe Program
 public partial class Program
 {
     public static async Task Main(string[] args)
@@ -128,8 +126,9 @@ public partial class Program
         app.UseRouting();
         app.UseCors("Development");  // Use a política nomeada
                                      // app.UseHttpsRedirection(); // Descomentado em produção
-        app.UseAuthentication();
+        app.UseTokenValidacao();
         app.UseExceptionMiddleware();
+        app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
 
