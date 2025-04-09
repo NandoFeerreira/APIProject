@@ -38,7 +38,7 @@ namespace APIProject.Infrastructure.Persistencia
                     await context.Database.EnsureCreatedAsync();
                     logger.LogInformation("Banco de dados verificado com sucesso.");
                 }
-               
+
             }
             catch (Exception ex)
             {
@@ -48,7 +48,7 @@ namespace APIProject.Infrastructure.Persistencia
         }
 
         /// <summary>
-        /// Apenas verifica se o banco de dados existe, sem aplicar migrações
+        /// Verifica se o banco de dados existe e se há migrações pendentes
         /// </summary>
         public static async Task VerificarBancoExisteAsync(IServiceProvider serviceProvider)
         {
@@ -66,12 +66,42 @@ namespace APIProject.Infrastructure.Persistencia
                 if (existe)
                 {
                     logger.LogInformation("Conexão com o banco de dados estabelecida com sucesso.");
-                   
-                    bool temMigracoesPendentes = (await context.Database.GetPendingMigrationsAsync()).Any();
+
+                    // Verificar migrações pendentes
+                    var migracoesPendentes = await context.Database.GetPendingMigrationsAsync();
+                    bool temMigracoesPendentes = migracoesPendentes.Any();
 
                     if (temMigracoesPendentes)
                     {
-                        logger.LogWarning("Há migrações pendentes que precisam ser aplicadas ao banco de dados.");
+                        logger.LogWarning("Há migrações pendentes que precisam ser aplicadas ao banco de dados:");
+                        foreach (var migracao in migracoesPendentes)
+                        {
+                            logger.LogWarning("- {MigracaoNome}", migracao);
+                        }
+                        logger.LogWarning("Execute 'dotnet ef database update' para aplicar as migrações.");
+                    }
+
+                    // Verificar se há alterações no modelo que precisam de novas migrations
+                    bool temAlteracoesModelo = false;
+                    try
+                    {
+                        // Verificar se há diferença entre as migrações aplicadas e as disponíveis
+                        var migracoesAplicadas = context.Database.GetAppliedMigrations().ToList();
+                        var migracoesDisponiveis = context.Database.GetMigrations().ToList();
+
+                        // Se há migrações disponíveis que não foram aplicadas
+                        temAlteracoesModelo = migracoesDisponiveis.Except(migracoesAplicadas).Any();
+                    }
+                    catch (Exception ex)
+                    {
+                        // Ignora erros ao verificar alterações no modelo
+                        logger.LogWarning("Erro ao verificar alterações no modelo: {Mensagem}", ex.Message);
+                    }
+
+                    if (temAlteracoesModelo)
+                    {
+                        logger.LogWarning("Há alterações no modelo que precisam de novas migrations.");
+                        logger.LogWarning("Execute 'dotnet ef migrations add NomeDaMigracao' para criar uma nova migration.");
                     }
                 }
                 else

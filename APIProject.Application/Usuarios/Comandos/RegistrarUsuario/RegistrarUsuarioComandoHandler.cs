@@ -1,3 +1,4 @@
+using APIProject.Application.Common;
 using APIProject.Application.DTOs;
 using APIProject.Application.Interfaces;
 using APIProject.Domain.Entidades;
@@ -11,39 +12,28 @@ using System.Threading.Tasks;
 
 namespace APIProject.Application.Usuarios.Comandos.RegistrarUsuario
 {
-    public class RegistrarUsuarioComandoHandler : IRequestHandler<RegistrarUsuarioComando, UsuarioDto>
+    public class RegistrarUsuarioComandoHandler : BaseCommandHandler<RegistrarUsuarioComando, IValidator<RegistrarUsuarioComando>>,
+                                                IRequestHandler<RegistrarUsuarioComando, UsuarioDto>
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IHashService _hashService;
-        private readonly IValidator<RegistrarUsuarioComando> _validator;
 
         public RegistrarUsuarioComandoHandler(
             IUnitOfWork unitOfWork,
             IMapper mapper,
             IHashService hashService,
-            IValidator<RegistrarUsuarioComando> validator)
+            IValidator<RegistrarUsuarioComando> validator) : base(validator)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _hashService = hashService;
-            _validator = validator;
         }
 
         public async Task<UsuarioDto> Handle(RegistrarUsuarioComando request, CancellationToken cancellationToken)
         {
-            // Validar comando usando o validador existente
-            var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-            if (!validationResult.IsValid)
-            {
-                var erros = validationResult.Errors.GroupBy(e => e.PropertyName)
-                    .ToDictionary(
-                        g => g.Key,
-                        g => g.Select(e => e.ErrorMessage).ToArray()
-                    );
-
-                throw new ValidacaoException(erros);
-            }
+            // Validar o comando usando o método da classe base
+            await ValidateCommand(request, cancellationToken);
 
             // Verificar se o email já existe
             if (await _unitOfWork.Usuarios.EmailExisteAsync(request.Email))

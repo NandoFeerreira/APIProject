@@ -51,13 +51,13 @@ namespace APIProject.Infrastructure.DependencyInjection
                 }
             }
 
-            // Registrar serviços JwtConfiguracoes como singleton
-            services.Configure<JwtConfiguracoes>(configuration.GetSection("JwtConfiguracoes"));
+            // A configuração de JwtConfiguracoes é feita em APIProject.API.Extensions.ServiceCollectionExtensions
 
             // Registrar serviços de infraestrutura
             services.AddScoped<IHashService, HashService>();
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IUsuarioServico, UsuarioServico>();
+            services.AddScoped<ITokenValidacaoServico, TokenValidacaoServico>();
 
             // Registrar repositórios
             services.AddScoped<IUsuarioRepositorio, UsuarioRepositorio>();

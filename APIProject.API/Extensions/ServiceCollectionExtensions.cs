@@ -19,9 +19,7 @@ namespace APIProject.API.Extensions
             // Adiciona serviços da camada de aplicação
             services.AddApplicationLayer();
 
-            services.AddScoped<IValidator<LoginUsuarioComando>, LoginUsuarioComandoValidador>();
-            services.AddScoped<IValidator<RegistrarUsuarioComando>, RegistrarUsuarioComandoValidador>();
-            services.AddScoped<IValidator<RefreshTokenComando>, RefreshTokenComandoValidador>();            
+            // Os validadores são registrados automaticamente em Program.cs com AddValidatorsFromAssembly
 
             services.AddHostedService<TokenLimpezaBackgroundService>();
 
@@ -56,10 +54,10 @@ namespace APIProject.API.Extensions
                     ValidAudience = configuration["JwtConfiguracoes:Audiencia"],
                     IssuerSigningKey = new SymmetricSecurityKey(
                         Encoding.UTF8.GetBytes(configuration["JwtConfiguracoes:Chave"]!))
-                };               
+                };
             });
 
-            
+
             services.AddAuthorization(options =>
             {
                 options.DefaultPolicy = new AuthorizationPolicyBuilder()

@@ -5,7 +5,7 @@ using APIProject.Infrastructure.Persistencia;
 using FluentValidation;
 using Microsoft.OpenApi.Models;
 
-namespace APIProject.API;     
+namespace APIProject.API;
 
 
 public partial class Program { }
@@ -69,7 +69,10 @@ public partial class Program
         // 4. Configurações de serviços da aplicação
         builder.Services.AddInfrastructureServices(builder.Configuration);
         builder.Services.AddApplicationServices(builder.Configuration);
-        builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
+
+        // Registrar validadores de todas as camadas
+        builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly); // Validadores da API
+        builder.Services.AddValidatorsFromAssembly(typeof(APIProject.Application.Extensions.ServiceCollectionExtensions).Assembly); // Validadores da camada de aplicação
 
         var app = builder.Build();
 
@@ -105,7 +108,7 @@ public partial class Program
                 c.ConfigObject.AdditionalItems.Add("persistAuthorization", true);
                 c.ConfigObject.AdditionalItems.Add("tryItOutEnabled", true);
             });
-          
+
             app.Use(async (context, next) =>
             {
                 if (context.Request.Method == "OPTIONS")

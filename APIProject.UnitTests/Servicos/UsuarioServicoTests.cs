@@ -1,17 +1,50 @@
 ﻿using APIProject.Domain.Entidades;
+using APIProject.Domain.Interfaces;
 using APIProject.Domain.Servicos;
+using Moq;
 using System;
 using Xunit;
 
-namespace APIProject.UnitTests.Domain.Servicos
+namespace APIProject.UnitTests.Servicos
 {
     public class UsuarioServicoTests
     {
+        private readonly Mock<IUnitOfWork> _unitOfWorkMock;
+        private readonly Mock<IUsuarioRepositorio> _usuarioRepositorioMock;
         private readonly UsuarioServico _usuarioServico;
 
         public UsuarioServicoTests()
         {
+            _unitOfWorkMock = new Mock<IUnitOfWork>();
+            _usuarioRepositorioMock = new Mock<IUsuarioRepositorio>();
+
+            _unitOfWorkMock.Setup(x => x.Usuarios).Returns(_usuarioRepositorioMock.Object);
+
             _usuarioServico = new UsuarioServico();
+        }
+
+        [Fact]
+        public void RegistrarLogin_DeveAtualizarUltimoLogin()
+        {
+            // Arrange
+            var usuario = new Usuario("Teste", "teste@teste.com", "senha_hash");
+            usuario.UltimoLogin = DateTime.UtcNow.AddMinutes(-5); // Definir um valor anterior
+            var dataAnterior = usuario.UltimoLogin;
+
+            // Act
+            _usuarioServico.RegistrarLogin(usuario);
+
+            // Assert
+            Assert.NotEqual(dataAnterior, usuario.UltimoLogin);
+            Assert.True(usuario.UltimoLogin > dataAnterior);
+        }
+
+        [Fact]
+        public void RegistrarLogin_ComUsuarioNull_DeveLancarArgumentNullException()
+        {
+            // Act & Assert
+            Usuario? usuarioNull = null;
+            Assert.Throws<ArgumentNullException>(() => _usuarioServico.RegistrarLogin(usuarioNull!));
         }
 
         [Fact]
@@ -80,22 +113,5 @@ namespace APIProject.UnitTests.Domain.Servicos
             // Assert
             Assert.True(usuario.Ativo);
         }
-
-        [Fact]
-        public void RegistrarLogin_DeveAtualizarUltimoLogin()
-        {
-            // Arrange
-            var usuario = new Usuario("Nome Teste", "teste@teste.com", "hash");
-            usuario.UltimoLogin = null;
-
-            // Act
-            _usuarioServico.RegistrarLogin(usuario);
-
-            // Assert
-            Assert.NotNull(usuario.UltimoLogin);
-            Assert.True(usuario.UltimoLogin > DateTime.UtcNow.AddMinutes(-1));
-        }
-
-     
     }
 }

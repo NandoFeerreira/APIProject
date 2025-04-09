@@ -1,3 +1,4 @@
+using APIProject.Application.Common;
 using APIProject.Application.DTOs;
 using APIProject.Application.Interfaces;
 using APIProject.Domain.Excecoes;
@@ -10,41 +11,31 @@ using System.Threading.Tasks;
 
 namespace APIProject.Application.Usuarios.Comandos.LoginUsuario
 {
-    public class LoginUsuarioComandoHandler : IRequestHandler<LoginUsuarioComando, TokenDto>
+    public class LoginUsuarioComandoHandler : BaseCommandHandler<LoginUsuarioComando, IValidator<LoginUsuarioComando>>,
+                                             IRequestHandler<LoginUsuarioComando, TokenDto>
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IHashService _hashService;
         private readonly ITokenService _tokenService;
         private readonly IUsuarioServico _usuarioServico;
-        private readonly IValidator<LoginUsuarioComando> _validator;
 
         public LoginUsuarioComandoHandler(
             IUnitOfWork unitOfWork,
             IHashService hashService,
             ITokenService tokenService,
             IUsuarioServico usuarioServico,
-            IValidator<LoginUsuarioComando> validator)
+            IValidator<LoginUsuarioComando> validator) : base(validator)
         {
             _unitOfWork = unitOfWork;
             _hashService = hashService;
             _tokenService = tokenService;
             _usuarioServico = usuarioServico;
-            _validator = validator;
         }
 
         public async Task<TokenDto> Handle(LoginUsuarioComando request, CancellationToken cancellationToken)
-        {            
-            var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-            if (!validationResult.IsValid)
-            {
-                var erros = validationResult.Errors.GroupBy(e => e.PropertyName)
-                    .ToDictionary(
-                        g => g.Key,
-                        g => g.Select(e => e.ErrorMessage).ToArray()
-                    );
-
-                throw new ValidacaoException(erros);
-            }
+        {
+            // Validar o comando usando o método da classe base
+            await ValidateCommand(request, cancellationToken);
 
             // Buscar o usuário pelo email
             var usuario = await _unitOfWork.Usuarios.ObterPorEmailAsync(request.Email);
@@ -84,5 +75,5 @@ namespace APIProject.Application.Usuarios.Comandos.LoginUsuario
             return tokenDto;
         }
     }
-    
+
 }

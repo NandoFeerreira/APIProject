@@ -13,26 +13,7 @@ namespace APIProject.Infrastructure.Persistencia
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            
-            modelBuilder.Entity<Usuario>()
-                .HasMany(u => u.RefreshTokens)
-                .WithOne(rt => rt.Usuario)
-                .HasForeignKey(rt => rt.UsuarioId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<RefreshToken>()
-                .HasKey(rt => rt.Id);
-
-            modelBuilder.Entity<TokenInvalidado>()
-           .HasKey(t => t.Id);
-
-            modelBuilder.Entity<TokenInvalidado>()
-                .HasOne(t => t.Usuario)
-                .WithMany()
-                .HasForeignKey(t => t.UsuarioId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-
+            // Aplicar todas as configurações de entidades do assembly
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
             base.OnModelCreating(modelBuilder);

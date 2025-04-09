@@ -124,7 +124,7 @@ namespace APIProject.UnitTests.Comandos
             _fixture.HashServiceMock.Setup(x => x.VerificarHash(comando.Senha, usuario.Senha!))
                 .Returns(true);
             _fixture.TokenServiceMock.Setup(x => x.GerarToken(usuario))
-                .Returns(new TokenDto { Token = "token_gerado" });
+                .Returns(new TokenDto { Token = "token_gerado", RefreshToken = "refresh_token" });
 
             // Act
             var resultado = await handler.Handle(comando, CancellationToken.None);

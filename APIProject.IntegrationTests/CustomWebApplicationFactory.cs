@@ -92,20 +92,48 @@ namespace APIProject.IntegrationTests
                 var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
                 var hashService = scope.ServiceProvider.GetRequiredService<IHashService>();
                 var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var logger = Services.GetRequiredService<ILogger<CustomWebApplicationFactory>>();
 
                 // Limpar todos os usuários existentes
                 context.Usuarios.RemoveRange(context.Usuarios);
                 context.SaveChanges();
+                logger.LogInformation("Usuários existentes removidos");
 
                 // Adicionar usuário específico para o teste de login
                 var senhaCriptografada = hashService.CriarHash("senha123");
+                logger.LogInformation("Senha criptografada gerada: {SenhaCriptografada}", senhaCriptografada);
 
                 var usuarioTeste = new Usuario("Usuário Teste", "teste@teste.com", senhaCriptografada);
                 usuarioTeste.Ativo = true;  // Garantir que o usuário está ativo
+                logger.LogInformation("Usuário de teste criado: {Email}, {Nome}, Ativo: {Ativo}",
+                    usuarioTeste.Email, usuarioTeste.Nome, usuarioTeste.Ativo);
 
-                // Usar o UnitOfWork para adicionar o usuário
-                unitOfWork.Usuarios.AdicionarAsync(usuarioTeste).Wait();
-                unitOfWork.CommitAsync().Wait();
+                // Verificar se o usuário já existe
+                var usuarioExistente = unitOfWork.Usuarios.ObterPorEmailAsync("teste@teste.com").Result;
+                if (usuarioExistente == null)
+                {
+                    // Usar o UnitOfWork para adicionar o usuário
+                    logger.LogInformation("Adicionando usuário de teste ao banco de dados");
+                    unitOfWork.Usuarios.AdicionarAsync(usuarioTeste).Wait();
+                    var resultado = unitOfWork.CommitAsync().Result;
+                    logger.LogInformation("Usuário adicionado com sucesso. Resultado do commit: {Resultado}", resultado);
+                }
+                else
+                {
+                    logger.LogInformation("Usuário já existe no banco de dados: {Email}", usuarioExistente.Email);
+                }
+
+                // Verificar se o usuário foi realmente adicionado
+                var usuarioVerificacao = unitOfWork.Usuarios.ObterPorEmailAsync("teste@teste.com").Result;
+                if (usuarioVerificacao != null)
+                {
+                    logger.LogInformation("Usuário verificado no banco de dados: {Email}, {Nome}, Ativo: {Ativo}, Senha: {Senha}",
+                        usuarioVerificacao.Email, usuarioVerificacao.Nome, usuarioVerificacao.Ativo, usuarioVerificacao.Senha);
+                }
+                else
+                {
+                    logger.LogWarning("Usuário não encontrado no banco de dados após a adição");
+                }
             }
             catch (Exception ex)
             {

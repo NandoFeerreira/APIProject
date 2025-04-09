@@ -1,53 +1,30 @@
 using APIProject.Application.DTOs;
-using APIProject.Application.Interfaces;
+using APIProject.Application.DTOs.Autenticacao;
 using APIProject.Application.Usuarios.Comandos.LoginUsuario;
 using APIProject.Domain.Entidades;
 using APIProject.Domain.Excecoes;
-using APIProject.Domain.Interfaces;
-using APIProject.Domain.Interfaces.Servicos;
-using FluentValidation;
+using APIProject.UnitTests.Common;
 using FluentValidation.Results;
 using Moq;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace APIProject.UnitTests.Application.Usuarios.Comandos.LoginUsuario
+namespace APIProject.UnitTests.Handlers
 {
-    public class LoginUsuarioComandoHandlerTests
+    public class LoginUsuarioComandoHandlerTests : BaseCommandHandlerTests<LoginUsuarioComando, TokenDto>
     {
-        private readonly Mock<IUnitOfWork> _unitOfWorkMock;
-        private readonly Mock<IUsuarioRepositorio> _usuarioRepositorioMock;
-        private readonly Mock<IHashService> _hashServiceMock;
-        private readonly Mock<ITokenService> _tokenServiceMock;
-        private readonly Mock<IUsuarioServico> _usuarioServicoMock;
-        private readonly Mock<IValidator<LoginUsuarioComando>> _validatorMock;
         private readonly LoginUsuarioComandoHandler _handler;
 
-        public LoginUsuarioComandoHandlerTests()
+        public LoginUsuarioComandoHandlerTests() : base()
         {
-            _unitOfWorkMock = new Mock<IUnitOfWork>();
-            _usuarioRepositorioMock = new Mock<IUsuarioRepositorio>();
-            _hashServiceMock = new Mock<IHashService>();
-            _tokenServiceMock = new Mock<ITokenService>();
-            _usuarioServicoMock = new Mock<IUsuarioServico>();
-            _validatorMock = new Mock<IValidator<LoginUsuarioComando>>();
-
-            // Configurar o UnitOfWork para retornar o repositório de usuários mockado
-            _unitOfWorkMock.Setup(uow => uow.Usuarios).Returns(_usuarioRepositorioMock.Object);
-
-            // Configurar o validator para retornar sucesso por padrão
-            _validatorMock.Setup(x => x.ValidateAsync(It.IsAny<LoginUsuarioComando>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new ValidationResult());
-
             _handler = new LoginUsuarioComandoHandler(
-                _unitOfWorkMock.Object,
-                _hashServiceMock.Object,
-                _tokenServiceMock.Object,
-                _usuarioServicoMock.Object,
-                _validatorMock.Object);
+                UnitOfWorkMock.Object,
+                HashServiceMock.Object,
+                TokenServiceMock.Object,
+                UsuarioServicoMock.Object,
+                ValidatorMock.Object);
         }
 
         [Fact]
@@ -63,15 +40,15 @@ namespace APIProject.UnitTests.Application.Usuarios.Comandos.LoginUsuario
             var usuario = new Usuario("Teste", "teste@teste.com", "hash");
             usuario.Ativo = true;
 
-            var tokenDto = new TokenDto { Token = "token_valido" };
+            var tokenDto = new TokenDto { Token = "token_valido", RefreshToken = "refresh_token" };
 
-            _usuarioRepositorioMock.Setup(x => x.ObterPorEmailAsync(comando.Email))
+            UsuarioRepositorioMock.Setup(x => x.ObterPorEmailAsync(comando.Email))
                 .ReturnsAsync(usuario);
 
-            _hashServiceMock.Setup(x => x.VerificarHash(comando.Senha, usuario.Senha))
+            HashServiceMock.Setup(x => x.VerificarHash(comando.Senha, usuario.Senha))
                 .Returns(true);
 
-            _tokenServiceMock.Setup(x => x.GerarToken(usuario))
+            TokenServiceMock.Setup(x => x.GerarToken(usuario))
                 .Returns(tokenDto);
 
             // Act
@@ -79,8 +56,8 @@ namespace APIProject.UnitTests.Application.Usuarios.Comandos.LoginUsuario
 
             // Assert
             Assert.Equal(tokenDto, result);
-            _usuarioServicoMock.Verify(x => x.RegistrarLogin(usuario), Times.Once);
-            _unitOfWorkMock.Verify(x => x.CommitAsync(), Times.Once);
+            UsuarioServicoMock.Verify(x => x.RegistrarLogin(usuario), Times.Once);
+            UnitOfWorkMock.Verify(x => x.CommitAsync(), Times.Once);
         }
 
         [Fact]
@@ -99,7 +76,7 @@ namespace APIProject.UnitTests.Application.Usuarios.Comandos.LoginUsuario
                 new ValidationFailure("Senha", "Senha é obrigatória")
             };
 
-            _validatorMock.Setup(x => x.ValidateAsync(comando, It.IsAny<CancellationToken>()))
+            ValidatorMock.Setup(x => x.ValidateAsync(comando, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new ValidationResult(validationFailures));
 
             // Act & Assert
@@ -120,8 +97,8 @@ namespace APIProject.UnitTests.Application.Usuarios.Comandos.LoginUsuario
                 Senha = "senha123"
             };
 
-            _usuarioRepositorioMock.Setup(x => x.ObterPorEmailAsync(comando.Email))
-                .ReturnsAsync((Usuario)null);
+            UsuarioRepositorioMock.Setup(x => x.ObterPorEmailAsync(comando.Email))
+                .ReturnsAsync((Usuario?)null);
 
             // Act & Assert
             var exception = await Assert.ThrowsAsync<OperacaoNaoAutorizadaException>(
@@ -143,7 +120,7 @@ namespace APIProject.UnitTests.Application.Usuarios.Comandos.LoginUsuario
             var usuario = new Usuario("Teste", "teste@teste.com", "hash");
             usuario.Ativo = false;
 
-            _usuarioRepositorioMock.Setup(x => x.ObterPorEmailAsync(comando.Email))
+            UsuarioRepositorioMock.Setup(x => x.ObterPorEmailAsync(comando.Email))
                 .ReturnsAsync(usuario);
 
             // Act & Assert
@@ -166,10 +143,10 @@ namespace APIProject.UnitTests.Application.Usuarios.Comandos.LoginUsuario
             var usuario = new Usuario("Teste", "teste@teste.com", "hash");
             usuario.Ativo = true;
 
-            _usuarioRepositorioMock.Setup(x => x.ObterPorEmailAsync(comando.Email))
+            UsuarioRepositorioMock.Setup(x => x.ObterPorEmailAsync(comando.Email))
                 .ReturnsAsync(usuario);
 
-            _hashServiceMock.Setup(x => x.VerificarHash(comando.Senha, usuario.Senha))
+            HashServiceMock.Setup(x => x.VerificarHash(comando.Senha, usuario.Senha))
                 .Returns(false);
 
             // Act & Assert
