@@ -20,14 +20,10 @@ A .NET Core API project built using Clean Architecture principles, implementing 
 ### Getting Started
 1. Clone the repository
 2. Restore NuGet packages
-3. Update the database using the script: `scripts\check-migrations.ps1`
-4. Build and run the project
+3. Build and run the project (migrations will be applied automatically)
 
 ### Database Migrations
-The project includes scripts to help manage database migrations:
-
-- `scripts\check-migrations.ps1`: Checks for pending migrations and applies them if needed
-- `scripts\update-database.ps1`: Checks for model changes, creates new migrations, and applies them
+The project is configured to apply migrations automatically on startup (controlled by the `AplicarMigracoesAutomaticamente` setting in appsettings.json).
 
 You can also use standard Entity Framework commands:
 
@@ -61,14 +57,10 @@ Uma API .NET Core construída utilizando os princípios da Clean Architecture, i
 ### Como Começar
 1. Clone o repositório
 2. Restaure os pacotes NuGet
-3. Atualize o banco de dados usando o script: `scripts\check-migrations.ps1`
-4. Compile e execute o projeto
+3. Compile e execute o projeto (migrações serão aplicadas automaticamente)
 
 ### Migrações de Banco de Dados
-O projeto inclui scripts para ajudar a gerenciar migrações de banco de dados:
-
-- `scripts\check-migrations.ps1`: Verifica migrações pendentes e as aplica se necessário
-- `scripts\update-database.ps1`: Verifica mudanças no modelo, cria novas migrações e as aplica
+O projeto está configurado para aplicar migrações automaticamente na inicialização (controlado pela configuração `AplicarMigracoesAutomaticamente` no arquivo appsettings.json).
 
 Você também pode usar os comandos padrão do Entity Framework:
 
