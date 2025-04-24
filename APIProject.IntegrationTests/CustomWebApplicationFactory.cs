@@ -19,10 +19,10 @@ namespace APIProject.IntegrationTests
     public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
         private readonly string _databaseName;
-
-        public CustomWebApplicationFactory(string databaseName)
+        
+        public CustomWebApplicationFactory()
         {
-            _databaseName = databaseName;
+            _databaseName = $"TestDb-{Guid.NewGuid()}";
         }
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -39,49 +39,39 @@ namespace APIProject.IntegrationTests
             {
                 logging.ClearProviders();
                 logging.AddConsole();
+                logging.AddDebug();
             });
 
             builder.ConfigureServices(services =>
             {
-                // Remover o registro do DbContext existente
-                var descriptors = services.Where(
-                    d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>) ||
-                         d.ServiceType == typeof(DbContextOptions) ||
-                         d.ServiceType == typeof(ApplicationDbContext));
+                // Remover os registros do DbContext existentes
+                RemoveDbContextRegistration(services);
 
-                foreach (var descriptor in descriptors.ToList())
-                {
-                    services.Remove(descriptor);
-                }
-
-                // Adicionar o DbContext com banco de dados em memória
+                // Adicionar banco em memória para testes
                 services.AddDbContext<ApplicationDbContext>(options =>
-                    options.UseInMemoryDatabase(_databaseName)
-                           .EnableDetailedErrors()
-                           .EnableSensitiveDataLogging());
-
-                // Registrar o UnitOfWork para testes
-                services.AddScoped<IUnitOfWork, UnitOfWork>();
-
-                // Inicializar o banco de dados
-                var sp = services.BuildServiceProvider();
-                using (var scope = sp.CreateScope())
                 {
-                    var scopedServices = scope.ServiceProvider;
-                    var db = scopedServices.GetRequiredService<ApplicationDbContext>();
-                    var logger = scopedServices.GetRequiredService<ILogger<CustomWebApplicationFactory>>();
+                    options.UseInMemoryDatabase(_databaseName);
+                    options.EnableDetailedErrors();
+                    options.EnableSensitiveDataLogging();
+                });
 
-                    try
-                    {
-                        db.Database.EnsureCreated();
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, "Erro ao criar banco de dados para testes");
-                        throw;
-                    }
-                }
+                // Garantir que os serviços necessários para testes estejam registrados
+                services.AddScoped<IUnitOfWork, UnitOfWork>();
             });
+        }
+
+        // Helper para remover registros de DbContext existentes
+        private void RemoveDbContextRegistration(IServiceCollection services)
+        {
+            var descriptors = services.Where(
+                d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>) ||
+                     d.ServiceType == typeof(DbContextOptions) ||
+                     d.ServiceType == typeof(ApplicationDbContext)).ToList();
+
+            foreach (var descriptor in descriptors)
+            {
+                services.Remove(descriptor);
+            }
         }
 
         public void SeedTestData()
@@ -89,50 +79,40 @@ namespace APIProject.IntegrationTests
             try
             {
                 using var scope = Services.CreateScope();
-                var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-                var hashService = scope.ServiceProvider.GetRequiredService<IHashService>();
                 var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                var logger = Services.GetRequiredService<ILogger<CustomWebApplicationFactory>>();
+                var hashService = scope.ServiceProvider.GetRequiredService<IHashService>();
+                var logger = scope.ServiceProvider.GetRequiredService<ILogger<CustomWebApplicationFactory>>();
 
-                // Limpar todos os usuários existentes
+                // Limpar dados existentes
                 context.Usuarios.RemoveRange(context.Usuarios);
+                context.RefreshTokens.RemoveRange(context.RefreshTokens);
+                context.TokensInvalidados.RemoveRange(context.TokensInvalidados);
                 context.SaveChanges();
-                logger.LogInformation("Usuários existentes removidos");
+                
+                logger.LogInformation("Banco de dados limpo para inicialização de teste");
 
-                // Adicionar usuário específico para o teste de login
+                // Adicionar usuário de teste
                 var senhaCriptografada = hashService.CriarHash("senha123");
-                logger.LogInformation("Senha criptografada gerada: {SenhaCriptografada}", senhaCriptografada);
-
                 var usuarioTeste = new Usuario("Usuário Teste", "teste@teste.com", senhaCriptografada);
-                usuarioTeste.Ativo = true;  // Garantir que o usuário está ativo
-                logger.LogInformation("Usuário de teste criado: {Email}, {Nome}, Ativo: {Ativo}",
+                usuarioTeste.Ativo = true;
+                
+                context.Usuarios.Add(usuarioTeste);
+                context.SaveChanges();
+                
+                logger.LogInformation("Usuário de teste criado: {Email}, {Nome}, {Ativo}", 
                     usuarioTeste.Email, usuarioTeste.Nome, usuarioTeste.Ativo);
 
-                // Verificar se o usuário já existe
-                var usuarioExistente = unitOfWork.Usuarios.ObterPorEmailAsync("teste@teste.com").Result;
-                if (usuarioExistente == null)
-                {
-                    // Usar o UnitOfWork para adicionar o usuário
-                    logger.LogInformation("Adicionando usuário de teste ao banco de dados");
-                    unitOfWork.Usuarios.AdicionarAsync(usuarioTeste).Wait();
-                    var resultado = unitOfWork.CommitAsync().Result;
-                    logger.LogInformation("Usuário adicionado com sucesso. Resultado do commit: {Resultado}", resultado);
-                }
-                else
-                {
-                    logger.LogInformation("Usuário já existe no banco de dados: {Email}", usuarioExistente.Email);
-                }
-
-                // Verificar se o usuário foi realmente adicionado
-                var usuarioVerificacao = unitOfWork.Usuarios.ObterPorEmailAsync("teste@teste.com").Result;
+                // Verificar se o usuário foi adicionado
+                var usuarioVerificacao = context.Usuarios.FirstOrDefault(u => u.Email == "teste@teste.com");
                 if (usuarioVerificacao != null)
                 {
-                    logger.LogInformation("Usuário verificado no banco de dados: {Email}, {Nome}, Ativo: {Ativo}, Senha: {Senha}",
-                        usuarioVerificacao.Email, usuarioVerificacao.Nome, usuarioVerificacao.Ativo, usuarioVerificacao.Senha);
+                    logger.LogInformation("Usuário verificado: {Email}, {Nome}, {Ativo}, {Id}",
+                        usuarioVerificacao.Email, usuarioVerificacao.Nome, usuarioVerificacao.Ativo, usuarioVerificacao.Id);
                 }
                 else
                 {
-                    logger.LogWarning("Usuário não encontrado no banco de dados após a adição");
+                    logger.LogError("Usuário não encontrado após adição");
+                    throw new Exception("Falha ao adicionar usuário de teste");
                 }
             }
             catch (Exception ex)
@@ -143,13 +123,47 @@ namespace APIProject.IntegrationTests
             }
         }
 
-        public async Task ResetDatabaseAsync()
+        public void ResetDatabase()
         {
             using var scope = Services.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            await context.Database.EnsureDeletedAsync();
-            await context.Database.EnsureCreatedAsync();
-            SeedTestData();
+            var hashService = scope.ServiceProvider.GetRequiredService<IHashService>();
+            var logger = scope.ServiceProvider.GetRequiredService<ILogger<CustomWebApplicationFactory>>();
+
+            try
+            {
+                // Limpar todos os dados
+                context.Usuarios.RemoveRange(context.Usuarios);
+                context.RefreshTokens.RemoveRange(context.RefreshTokens);
+                context.TokensInvalidados.RemoveRange(context.TokensInvalidados);
+                context.SaveChanges();
+                
+                logger.LogInformation("Banco de dados limpo para teste");
+
+                // Criar usuário de teste
+                var senhaCriptografada = hashService.CriarHash("senha123");
+                var usuarioTeste = new Usuario("Usuário Teste", "teste@teste.com", senhaCriptografada);
+                usuarioTeste.Ativo = true;
+                
+                context.Usuarios.Add(usuarioTeste);
+                context.SaveChanges();
+                
+                // Verificar se o usuário foi criado
+                var usuarioVerificacao = context.Usuarios.FirstOrDefault(u => u.Email == "teste@teste.com");
+                if (usuarioVerificacao == null)
+                {
+                    logger.LogError("Usuário não encontrado após reset");
+                    throw new Exception("Falha ao criar usuário de teste");
+                }
+                
+                logger.LogInformation("Usuário recriado: {Email}, {Nome}, {Id}, {Ativo}",
+                    usuarioVerificacao.Email, usuarioVerificacao.Nome, usuarioVerificacao.Id, usuarioVerificacao.Ativo);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Erro ao resetar banco de dados");
+                throw;
+            }
         }
     }
 }
