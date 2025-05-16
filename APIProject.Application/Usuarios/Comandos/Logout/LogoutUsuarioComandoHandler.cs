@@ -1,4 +1,5 @@
 ﻿// APIProject.Application/Usuarios/Comandos/Logout/LogoutUsuarioComandoHandler.cs
+using APIProject.Application.Interfaces;
 using APIProject.Domain.Entidades;
 using APIProject.Domain.Interfaces;
 using MediatR;
@@ -11,13 +12,17 @@ namespace APIProject.Application.Usuarios.Comandos.Logout
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ICacheService _cacheService;
+        private const string USER_REFRESH_TOKENS_KEY = "user:refreshtokens:";
 
         public LogoutUsuarioComandoHandler(
             IUnitOfWork unitOfWork,
-            IHttpContextAccessor httpContextAccessor)
+            IHttpContextAccessor httpContextAccessor,
+            ICacheService cacheService)
         {
             _unitOfWork = unitOfWork;
             _httpContextAccessor = httpContextAccessor;
+            _cacheService = cacheService;
         }
 
         public async Task Handle(LogoutUsuarioComando request, CancellationToken cancellationToken)
@@ -33,6 +38,10 @@ namespace APIProject.Application.Usuarios.Comandos.Logout
                 {
                     usuario.RefreshTokens.Remove(token);
                 }
+                
+                // Invalidar cache de refresh tokens do usuário
+                string cacheKey = $"{USER_REFRESH_TOKENS_KEY}{request.UsuarioId}";
+                await _cacheService.RemoveAsync(cacheKey);
             }
             
             string? authHeader = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].FirstOrDefault();
@@ -49,13 +58,17 @@ namespace APIProject.Application.Usuarios.Comandos.Logout
 
                     if (!string.IsNullOrEmpty(jti))
                     {
-                        await _unitOfWork.TokensInvalidados.AdicionarTokenInvalidadoAsync(new TokenInvalidado
+                        // Criar objeto TokenInvalidado
+                        var tokenInvalidado = new TokenInvalidado
                         {
                             Jti = jti,
                             Token = jwtToken,
                             UsuarioId = request.UsuarioId,
                             DataExpiracao = jwtSecurityToken.ValidTo
-                        });
+                        };
+                        
+                        // Adicionar à blacklist
+                        await _unitOfWork.TokensInvalidados.AdicionarTokenInvalidadoAsync(tokenInvalidado);
                     }
                 }
                 catch
