@@ -33,7 +33,12 @@ namespace APIProject.Infrastructure.Persistencia.Configuracoes
             builder.Property(u => u.Ativo)
                 .IsRequired();
 
-            // Remover configuraÁ„o de relacionamento com Perfil
+            // Configurar o campo RowVersion para controle de concorr√™ncia
+            builder.Property(u => u.RowVersion)
+                .IsRowVersion()
+                .IsConcurrencyToken();
+
+            // Remover configura√ß√£o de relacionamento com Perfil
         }
     }
 }

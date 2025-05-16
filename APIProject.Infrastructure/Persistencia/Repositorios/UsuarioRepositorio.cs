@@ -88,9 +88,7 @@ namespace APIProject.Infrastructure.Persistencia.Repositorios
 
         public void Atualizar(Usuario usuario)
         {
-            // O EF Core rastreia automaticamente as alterações em entidades carregadas
-            // Não é necessário chamar nenhum método específico para atualizar
-            // As alterações serão aplicadas quando o UnitOfWork chamar SaveChangesAsync
+            _usuarios.Entry(usuario).State = EntityState.Modified;
         }
 
         public async Task<Usuario?> ObterPorIdComRefreshTokensAsync(Guid id)

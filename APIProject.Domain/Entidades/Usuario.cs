@@ -11,6 +11,7 @@ namespace APIProject.Domain.Entidades
         public DateTime? UltimoLogin { get; set; }
         public bool Ativo { get; set; }
         public virtual ICollection<RefreshToken> RefreshTokens { get; set; } = [];
+        public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
         protected Usuario() { }
 

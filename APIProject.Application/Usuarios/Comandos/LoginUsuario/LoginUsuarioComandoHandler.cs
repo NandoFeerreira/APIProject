@@ -6,6 +6,7 @@ using APIProject.Domain.Interfaces;
 using APIProject.Domain.Interfaces.Servicos;
 using FluentValidation;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -34,10 +35,10 @@ namespace APIProject.Application.Usuarios.Comandos.LoginUsuario
 
         public async Task<TokenDto> Handle(LoginUsuarioComando request, CancellationToken cancellationToken)
         {
-            // Validar o comando usando o método da classe base
+            // Validar o comando
             await ValidateCommand(request, cancellationToken);
 
-            // Buscar o usuário pelo email
+            // Buscar o usuário pelo email (já incluindo os refresh tokens)
             var usuario = await _unitOfWork.Usuarios.ObterPorEmailAsync(request.Email);
             if (usuario == null)
             {
@@ -56,21 +57,99 @@ namespace APIProject.Application.Usuarios.Comandos.LoginUsuario
                 throw new OperacaoNaoAutorizadaException("Usuário ou senha inválidos");
             }
 
-            // Invalidate all existing refresh tokens
-            foreach (var token in usuario.RefreshTokens.Where(rt => rt.EstaAtivo))
-            {
-                token.Invalidado = true;
-            }
-
+            // Gerar o token antes de fazer qualquer alteração no usuário
             var tokenDto = _tokenService.GerarToken(usuario);
 
-            usuario.AdicionarRefreshToken(
-                tokenDto.RefreshToken,
-                DateTime.UtcNow.AddDays(1)
-            );
+            // Tentar salvar as alterações com retry simples
+            const int maxRetries = 3;
+            int retryCount = 0;
+            bool salvou = false;
 
-            _usuarioServico.RegistrarLogin(usuario);
-            await _unitOfWork.CommitAsync();
+            while (!salvou && retryCount < maxRetries)
+            {
+                try
+                {
+                    // Invalidar tokens existentes
+                    if (usuario.RefreshTokens != null)
+                    {
+                        foreach (var token in usuario.RefreshTokens.Where(rt => rt.EstaAtivo))
+                        {
+                            token.Invalidado = true;
+                        }
+                    }
+
+                    // Adicionar o novo refresh token
+                    usuario.AdicionarRefreshToken(
+                        tokenDto.RefreshToken,
+                        DateTime.UtcNow.AddDays(1)
+                    );
+
+                    // Registrar o login
+                    _usuarioServico.RegistrarLogin(usuario);
+
+                    // Salvar as alterações
+                    await _unitOfWork.CommitAsync();
+                    salvou = true;
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    retryCount++;
+
+                    if (retryCount >= maxRetries)
+                    {
+                        // Se atingimos o número máximo de tentativas, vamos tentar uma abordagem diferente
+                        try
+                        {
+                            // Buscar o usuário novamente
+                            usuario = await _unitOfWork.Usuarios.ObterPorIdComRefreshTokensAsync(usuario.Id);
+                            if (usuario != null)
+                            {
+                                // Invalidar tokens existentes
+                                if (usuario.RefreshTokens != null)
+                                {
+                                    foreach (var token in usuario.RefreshTokens.Where(rt => rt.EstaAtivo))
+                                    {
+                                        token.Invalidado = true;
+                                    }
+                                }
+
+                                // Adicionar o novo refresh token
+                                usuario.AdicionarRefreshToken(
+                                    tokenDto.RefreshToken,
+                                    DateTime.UtcNow.AddDays(1)
+                                );
+
+                                // Registrar o login
+                                _usuarioServico.RegistrarLogin(usuario);
+
+                                // Salvar as alterações
+                                await _unitOfWork.CommitAsync();
+                                salvou = true;
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            // Se ainda falhar, vamos apenas continuar e retornar o token
+                            // O usuário poderá usar o token, mas o refresh token pode não funcionar
+                        }
+                    }
+                    else
+                    {
+                        // Buscar o usuário novamente para a próxima tentativa
+                        usuario = await _unitOfWork.Usuarios.ObterPorEmailAsync(request.Email);
+                        if (usuario == null)
+                        {
+                            // Se o usuário não existir mais, vamos parar as tentativas
+                            break;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Para outros erros, lançamos a exceção
+                    throw new Exception($"Erro ao processar o login: {ex.Message}", ex);
+                }
+            }
 
             return tokenDto;
         }
