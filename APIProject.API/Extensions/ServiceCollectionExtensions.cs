@@ -17,7 +17,7 @@ namespace APIProject.API.Extensions
         public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
         {
             // Adiciona serviços da camada de aplicação
-            services.AddApplicationLayer();
+            services.AddApplicationServices();
 
             services.AddScoped<IValidator<LoginUsuarioComando>, LoginUsuarioComandoValidador>();
             services.AddScoped<IValidator<RegistrarUsuarioComando>, RegistrarUsuarioComandoValidador>();

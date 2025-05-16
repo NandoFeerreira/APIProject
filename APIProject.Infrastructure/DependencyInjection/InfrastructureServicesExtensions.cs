@@ -51,8 +51,23 @@ namespace APIProject.Infrastructure.DependencyInjection
                 }
             }
 
-            // Registrar serviços JwtConfiguracoes como singleton
+            // Registrar configurações
             services.Configure<JwtConfiguracoes>(configuration.GetSection("JwtConfiguracoes"));
+            services.Configure<RedisConfiguracoes>(configuration.GetSection("RedisConfiguracoes"));
+
+            // Configurar Redis
+            var redisConfig = configuration.GetSection("RedisConfiguracoes").Get<RedisConfiguracoes>();
+            if (redisConfig != null && !string.IsNullOrEmpty(redisConfig.ConnectionString))
+            {
+                services.AddStackExchangeRedisCache(options =>
+                {
+                    options.Configuration = redisConfig.ConnectionString;
+                    options.InstanceName = redisConfig.InstanceName;
+                });
+
+                // Registrar serviço de cache
+                services.AddScoped<ICacheService, RedisCacheService>();
+            }
 
             // Registrar serviços de infraestrutura
             services.AddScoped<IHashService, HashService>();
@@ -70,5 +85,4 @@ namespace APIProject.Infrastructure.DependencyInjection
             return services;
         }
     }
-
 }
